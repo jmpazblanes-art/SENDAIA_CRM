@@ -1,0 +1,234 @@
+{
+    "nodes": [
+        {
+            "parameters": {
+                "operation": "getAll",
+                "tableId": "clients",
+                "returnAll": false,
+                "limit": 1,
+                "select": "id,first_name,last_name,email,phone",
+                "filterType": "manual",
+                "matchType": "allFilters",
+                "filters": {
+                    "conditions": [
+                        {
+                            "keyName": "phone",
+                            "condition": "equals",
+                            "keyValue": "={{ $json.phone }}"
+                        }
+                    ]
+                }
+            },
+            "name": "SUPA - Get Client (Lead)",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1000,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "create",
+                "tableId": "clients",
+                "dataMode": "defineBelow",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "first_name",
+                            "fieldValue": "={{ $json.full_name.split(' ')[0] }}"
+                        },
+                        {
+                            "fieldId": "last_name",
+                            "fieldValue": "={{ $json.full_name.split(' ').slice(1).join(' ') }}"
+                        },
+                        {
+                            "fieldId": "email",
+                            "fieldValue": "={{ $json.email || null }}"
+                        },
+                        {
+                            "fieldId": "phone",
+                            "fieldValue": "={{ $json.phone || null }}"
+                        },
+                        {
+                            "fieldId": "company_name",
+                            "fieldValue": "={{ $json.company_name || null }}"
+                        },
+                        {
+                            "fieldId": "assigned_to",
+                            "fieldValue": "f4c04942-7c43-4373-8dc8-49e28b2a93c8"
+                        }
+                    ]
+                }
+            },
+            "name": "SUPA - Create Client (Lead)",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1200,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "create",
+                "tableId": "chat_messages",
+                "dataMode": "defineBelow",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "client_id",
+                            "fieldValue": "={{ $json.id }}"
+                        },
+                        {
+                            "fieldId": "content",
+                            "fieldValue": "={{ $json.content }}"
+                        },
+                        {
+                            "fieldId": "sender",
+                            "fieldValue": "client"
+                        }
+                    ]
+                }
+            },
+            "name": "SUPA - Add Message",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1400,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "tableId": "clients",
+                "returnAll": false,
+                "limit": 1,
+                "select": "id,first_name,last_name,email,phone",
+                "filterType": "manual",
+                "matchType": "allFilters",
+                "filters": {
+                    "conditions": [
+                        {
+                            "keyName": "phone",
+                            "condition": "equals",
+                            "keyValue": "={{ $json.phone }}"
+                        }
+                    ]
+                }
+            },
+            "name": "SUPA - Get Client (Appt)",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1000,
+                600
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "create",
+                "tableId": "clients",
+                "dataMode": "defineBelow",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "first_name",
+                            "fieldValue": "={{ $json.full_name.split(' ')[0] }}"
+                        },
+                        {
+                            "fieldId": "last_name",
+                            "fieldValue": "={{ $json.full_name.split(' ').slice(1).join(' ') }}"
+                        },
+                        {
+                            "fieldId": "email",
+                            "fieldValue": "={{ $json.email || null }}"
+                        },
+                        {
+                            "fieldId": "phone",
+                            "fieldValue": "={{ $json.phone || null }}"
+                        },
+                        {
+                            "fieldId": "assigned_to",
+                            "fieldValue": "f4c04942-7c43-4373-8dc8-49e28b2a93c8"
+                        }
+                    ]
+                }
+            },
+            "name": "SUPA - Create Client (Appt)",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1200,
+                700
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "create",
+                "tableId": "appointments",
+                "dataMode": "defineBelow",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "client_id",
+                            "fieldValue": "={{ $json.id }}"
+                        },
+                        {
+                            "fieldId": "title",
+                            "fieldValue": "={{ $json.title }}"
+                        },
+                        {
+                            "fieldId": "type",
+                            "fieldValue": "={{ $json.type || 'DEMO' }}"
+                        },
+                        {
+                            "fieldId": "start_time",
+                            "fieldValue": "={{ $json.start_time }}"
+                        },
+                        {
+                            "fieldId": "end_time",
+                            "fieldValue": "={{ $json.end_time }}"
+                        },
+                        {
+                            "fieldId": "assigned_to",
+                            "fieldValue": "f4c04942-7c43-4373-8dc8-49e28b2a93c8"
+                        }
+                    ]
+                }
+            },
+            "name": "SUPA - Create Appointment",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1400,
+                600
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "getAll",
+                "tableId": "clients",
+                "returnAll": false,
+                "limit": 10,
+                "select": "id,first_name,last_name,email,phone,company_name,created_at",
+                "sort": {
+                    "sortProperties": [
+                        {
+                            "keyName": "created_at",
+                            "direction": "DESC"
+                        }
+                    ]
+                }
+            },
+            "name": "SUPA - List Clients (Top10)",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1000,
+                900
+            ]
+        }
+    ]
+}
