@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { format, isAfter, startOfToday } from "date-fns"
 import { es } from "date-fns/locale"
+import Link from "next/link"
 
 export const dynamic = 'force-dynamic'
 
@@ -126,9 +127,11 @@ export default async function AppointmentsPage() {
                         <code className="text-[10px] text-muted-foreground break-all">{error?.message || "Error desconocido en el servidor"}</code>
                     </div>
                 </div>
-                <Button variant="outline" className="text-[10px] font-black uppercase tracking-widest border-primary/20 text-primary" onClick={() => window.location.reload()}>
-                    Reintentar Conexión
-                </Button>
+                <Link href="/dashboard/appointments">
+                    <Button variant="outline" className="text-[10px] font-black uppercase tracking-widest border-primary/20 text-primary">
+                        Reintentar Conexión
+                    </Button>
+                </Link>
             </div>
         )
     }
