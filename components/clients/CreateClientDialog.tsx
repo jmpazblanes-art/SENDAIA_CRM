@@ -17,6 +17,7 @@ import { Plus, Loader2, UserPlus } from "lucide-react"
 import { createClientAction } from "@/app/dashboard/clients/actions"
 import { useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "sonner"
 
 export function CreateClientDialog() {
     const [open, setOpen] = useState(false)
@@ -28,8 +29,13 @@ export function CreateClientDialog() {
         setLoading(false)
         if (result?.success) {
             setOpen(false)
+            toast.success("Lead registrado correctamente", {
+                description: "Se ha añadido a la base de datos de SendaIA."
+            })
         } else {
-            alert("Error al crear cliente")
+            toast.error("Error al crear cliente", {
+                description: result?.error || "Inténtalo de nuevo más tarde."
+            })
         }
     }
 

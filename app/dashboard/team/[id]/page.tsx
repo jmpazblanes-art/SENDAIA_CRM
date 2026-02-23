@@ -17,6 +17,10 @@ export default async function EmployeeDetailPage({ params }: { params: { id: str
     const { id } = await params
     const supabase = await createClient()
 
+    if (!supabase) {
+        notFound()
+    }
+
     const { data: employee } = await supabase
         .from('employees')
         .select(`
@@ -134,7 +138,7 @@ export default async function EmployeeDetailPage({ params }: { params: { id: str
                                         <div className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary/20 border border-transparent hover:border-border transition-all">
                                             <div className="flex items-center gap-3">
                                                 <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center font-bold text-xs">
-                                                    {client.first_name[0]}{client.last_name[0]}
+                                                    {(client.first_name?.[0] ?? "?")}{(client.last_name?.[0] ?? "")}
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-medium">{client.first_name} {client.last_name}</p>
@@ -143,7 +147,7 @@ export default async function EmployeeDetailPage({ params }: { params: { id: str
                                             </div>
                                             <div className="flex items-center gap-4">
                                                 <Badge variant="outline" className="text-[10px] h-5">
-                                                    {client.status.toUpperCase()}
+                                                    {(client.status ?? "lead").toUpperCase()}
                                                 </Badge>
                                                 <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
                                             </div>

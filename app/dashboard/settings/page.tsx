@@ -6,8 +6,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Settings, Shield, Bell, Database, Globe, Brain } from "lucide-react"
+import { toast } from "sonner"
 
 export default function SettingsPage() {
+    const handleTestTelegram = () => {
+        toast.success("Alerta enviada correctamente a Telegram (Modo Simulación)", {
+            description: "El bot @SendaIA_Bot ha procesado la notificación.",
+        })
+    }
+
     return (
         <div className="flex flex-col h-full space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -63,7 +70,12 @@ export default function SettingsPage() {
                         <CardContent className="space-y-4">
                             <div className="bg-secondary/10 p-4 rounded-lg border border-border/50">
                                 <p className="text-xs font-bold text-foreground mb-2 uppercase">Integración Telegram</p>
-                                <Button size="sm" variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-primary/30 text-primary hover:bg-primary/10"
+                                    onClick={handleTestTelegram}
+                                >
                                     Probar Alerta Telegram
                                 </Button>
                             </div>

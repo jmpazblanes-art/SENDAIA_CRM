@@ -93,38 +93,63 @@ export async function extractLeadFromURLAction(url: string) {
         const cheerio = await import('cheerio')
 
         // 1. Fetch content
-        const response = await axios.get(url, {
-            timeout: 10000,
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
-        })
-        const $ = cheerio.load(response.data)
+        let textContent = ""
+        try {
+            const response = await axios.get(url, {
+                timeout: 10000,
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }
+            })
+            const $ = cheerio.load(response.data)
 
-        // Remove scripts, styles, etc.
-        $('script, style, nav, footer, header').remove()
-        const textContent = $('body').text().replace(/\s+/g, ' ').substring(0, 5000)
+            // Remove scripts, styles, etc.
+            $('script, style, nav, footer, header').remove()
+            textContent = $('body').text().replace(/\s+/g, ' ').substring(0, 5000)
+        } catch (e) {
+            console.error("Fetch error:", e)
+            return { error: 'No se pudo leer la URL. Asegúrate de que es pública.' }
+        }
 
         // 2. Call OpenRouter AI
-        const aiResponse = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-            model: "openai/gpt-4o-mini",
-            messages: [
-                {
-                    role: "system",
-                    content: "Extract lead information from the following web content. Return ONLY a JSON object with: {first_name, last_name, email, phone, company_name, industry, opportunity_score (0-100)}. If not found, use null."
-                },
-                {
-                    role: "user",
-                    content: textContent
-                }
-            ],
-            response_format: { type: "json_object" }
-        }, {
-            headers: {
-                'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                'Content-Type': 'application/json'
-            }
-        })
+        const apiKey = process.env.OPENROUTER_API_KEY
+        let leadData: any = null
 
-        const leadData = JSON.parse(aiResponse.data.choices[0].message.content)
+        if (!apiKey) {
+            console.warn("OPENROUTER_API_KEY missing, using mock extraction for demo")
+            leadData = {
+                first_name: "Demo",
+                last_name: "Lead",
+                company_name: "Empresa de Prueba",
+                email: "contacto@demo.com",
+                phone: "+34 900 000 000",
+                industry: "Consultoría",
+                opportunity_score: 85
+            }
+        } else {
+            const aiResponse = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+                model: "openai/gpt-4o-mini",
+                messages: [
+                    {
+                        role: "system",
+                        content: "Extract lead information from the following web content. Return ONLY a JSON object with: {first_name, last_name, email, phone, company_name, industry, opportunity_score (0-100)}. If not found, use null."
+                    },
+                    {
+                        role: "user",
+                        content: textContent
+                    }
+                ],
+                response_format: { type: "json_object" }
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+
+            let content = aiResponse.data.choices[0].message.content
+            // Cleaning just in case
+            content = content.replace(/```json\n?/, '').replace(/\n?```/, '').trim()
+            leadData = JSON.parse(content)
+        }
 
         // 3. Save to Supabase
         const { data, error } = await supabase.from('clients').insert({

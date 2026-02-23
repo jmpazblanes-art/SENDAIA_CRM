@@ -1,181 +1,95 @@
 
-import { ClientPipeline } from "@/components/clients/ClientPipeline"
-import { CreateClientDialog } from "@/components/clients/CreateClientDialog"
-import { ImportLeadDialog } from "@/components/clients/ImportLeadDialog"
 import { createClient } from "@/utils/supabase/server"
-import { Client } from "@/components/clients/ClientCard"
+import { ClientsPipeline } from "@/components/clients/ClientsPipeline"
+import { ClientsTable } from "@/components/clients/ClientsTable"
+import { CreateClientDialog } from "@/components/clients/CreateClientDialog"
+import { ImportClientsDialog } from "@/components/clients/ImportClientsDialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { DataTable } from "@/components/ui/data-table"
-import { ColumnDef } from "@tanstack/react-table"
-import { Badge } from "@/components/ui/badge"
-import { format } from "date-fns"
-import { es } from "date-fns/locale"
-import Link from "next/link"
+import { LayoutGrid, List, AlertTriangle, Database } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Eye, Kanban, List } from "lucide-react"
+import Link from "next/link"
 
 export const dynamic = 'force-dynamic'
 
-const columns: ColumnDef<any>[] = [
-    {
-        accessorKey: "name",
-        header: "Nombre",
-        cell: ({ row }: any) => {
-            return (
-                <div className="flex flex-col">
-                    <span className="font-bold text-foreground">{row.original.name}</span>
-                    <span className="text-[10px] text-muted-foreground">{row.original.company}</span>
-                </div>
-            )
-        }
-    },
-    {
-        accessorKey: "ai_score",
-        header: "IA Score",
-        cell: ({ row }: any) => {
-            const score = row.original.ai_score
-            return (
-                <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1.5 w-12 bg-secondary rounded-full overflow-hidden">
-                        <div
-                            className={`h-full ${score > 80 ? 'bg-green-500' : score > 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                            style={{ width: `${score}%` }}
-                        />
-                    </div>
-                    <span className={`text-[10px] font-black ${score > 80 ? 'text-green-500' : score > 50 ? 'text-yellow-500' : 'text-red-500'}`}>
-                        {score}%
-                    </span>
-                </div>
-            )
-        }
-    },
-    {
-        accessorKey: "status",
-        header: "Estado",
-        cell: ({ row }: any) => {
-            const status = row.getValue("status") as string
-            return (
-                <Badge variant="outline" className="capitalize border-primary/30 text-primary bg-primary/5">
-                    {status}
-                </Badge>
-            )
-        }
-    },
-    {
-        accessorKey: "last_contact",
-        header: () => <span className="hidden md:inline">Último Contacto</span>,
-        cell: ({ row }: any) => {
-            const date = row.getValue("last_contact") as string
-            try {
-                return <span className="hidden md:inline">{date ? format(new Date(date), "d MMM, yyyy", { locale: es }) : "-"}</span>
-            } catch (e) {
-                return <span className="hidden md:inline">-</span>
-            }
-        }
-    },
-    {
-        accessorKey: "next_action",
-        header: () => <span className="hidden lg:inline">Próxima Acción</span>,
-        cell: ({ row }: any) => {
-            const date = row.original.next_action as string
-            try {
-                return <span className="hidden lg:inline">{date ? (
-                    <span className="text-secondary-foreground font-medium">
-                        {format(new Date(date), "d MMM", { locale: es })}
-                    </span>
-                ) : "-"}</span>
-            } catch (e) {
-                return <span className="hidden lg:inline">-</span>
-            }
-        }
-    },
-    {
-        accessorKey: "source",
-        header: () => <span className="hidden xl:inline">Origen</span>,
-        cell: ({ row }: any) => <span className="text-xs text-muted-foreground italic hidden xl:inline">{row.original.source || "Directo"}</span>
-    },
-    {
-        id: "actions",
-        cell: ({ row }: any) => (
-            <Link href={`/dashboard/clients/${row.original.id}`}>
-                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary/10 hover:text-primary">
-                    <Eye className="h-4 w-4" />
-                </Button>
-            </Link>
-        )
-    }
-]
-
 export default async function ClientsPage() {
-    const supabase = await createClient()
+    try {
+        const supabase = await createClient()
 
-    const { data: clients } = await supabase
-        .from('clients')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-
-    const mappedClients: any[] = clients?.map(client => {
-        const firstName = client.first_name || "Cliente"
-        const lastName = client.last_name || ""
-        return {
-            id: client.id,
-            name: `${firstName} ${lastName}`.trim(),
-            company: client.company_name || "",
-            phone: client.phone || "Sin teléfono",
-            status: client.status || "lead",
-            source: client.source || "Directo",
-            last_contact: client.last_contact_date,
-            next_action: client.next_follow_up,
-            priority: client.priority || 'medium',
-            tags: client.pain_points || [],
-            ai_score: Math.floor(Math.random() * (98 - 45 + 1)) + 45, // AI Agency mock score
+        if (!supabase) {
+            throw new Error("SUPABASE_UNAVAILABLE: Las variables de entorno para la base de datos no están configuradas en Vercel.")
         }
-    }) || []
 
-    return (
-        <div className="flex flex-col h-full space-y-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white">Base de Datos de Clientes</h1>
-                    <p className="text-muted-foreground text-sm">Gestiona tus leads y oportunidades de negocio.</p>
-                </div>
+        const { data: clients, error } = await supabase
+            .from('clients')
+            .select('*')
+            .order('created_at', { ascending: false })
 
-                <div className="flex items-center gap-2 w-full md:w-auto">
-                    <div className="flex-1 md:flex-none">
-                        <ImportLeadDialog />
+        if (error) console.error("Error fetching clients:", error)
+
+        return (
+            <div className="flex flex-col h-full space-y-6 animate-in fade-in duration-500">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-black tracking-tighter text-white uppercase italic">Central de Leads</h1>
+                        <p className="text-muted-foreground italic text-sm font-medium">SendaIA • Gestión de activos industriales y comerciales.</p>
                     </div>
-                    <div className="flex-1 md:flex-none">
+                    <div className="flex items-center gap-3">
+                        <ImportClientsDialog />
                         <CreateClientDialog />
                     </div>
                 </div>
-            </div>
 
-            <Tabs defaultValue="pipeline" className="flex-1 flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                    <TabsList className="bg-secondary/20 border border-border">
-                        <TabsTrigger value="pipeline" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                            <Kanban className="h-4 w-4 mr-2" /> Pipeline
-                        </TabsTrigger>
-                        <TabsTrigger value="list" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                            <List className="h-4 w-4 mr-2" /> Lista
-                        </TabsTrigger>
-                    </TabsList>
+                <Tabs defaultValue="pipeline" className="w-full">
+                    <div className="flex items-center justify-between mb-4 bg-secondary/20 p-1 rounded-xl border border-border/50">
+                        <TabsList className="bg-transparent border-none">
+                            <TabsTrigger value="pipeline" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold text-xs uppercase italic tracking-widest px-6">
+                                <LayoutGrid className="h-3.5 w-3.5 mr-2" /> Pipeline Flow
+                            </TabsTrigger>
+                            <TabsTrigger value="list" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold text-xs uppercase italic tracking-widest px-6">
+                                <List className="h-3.5 w-3.5 mr-2" /> Listado Maestro
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
+
+                    <TabsContent value="pipeline" className="mt-0 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                        <ClientsPipeline initialClients={clients || []} />
+                    </TabsContent>
+                    <TabsContent value="list" className="mt-0">
+                        <ClientsTable clients={clients || []} />
+                    </TabsContent>
+                </Tabs>
+            </div>
+        )
+    } catch (error: any) {
+        console.error("Critical failure in ClientsPage:", error)
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center animate-in zoom-in-95 duration-500">
+                <div className="relative mb-6">
+                    <Database className="h-16 w-16 text-red-500 animate-pulse" />
+                    <div className="absolute inset-0 bg-red-500/20 blur-[30px] rounded-full scale-150 opacity-20" />
                 </div>
 
-                <TabsContent value="pipeline" className="flex-1 mt-0">
-                    <div className="h-[calc(100vh-16rem)] overflow-hidden">
-                        <ClientPipeline data={mappedClients} />
-                    </div>
-                </TabsContent>
+                <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2">Base de Datos Desconectada</h2>
+                <p className="text-muted-foreground text-sm max-w-sm mb-8">
+                    No se ha podido establecer contacto con el servidor de datos central de SendaIA.
+                </p>
 
-                <TabsContent value="list" className="flex-1 mt-0 bg-card border border-border rounded-xl p-4 shadow-xl">
-                    <DataTable
-                        columns={columns}
-                        data={mappedClients}
-                    />
-                </TabsContent>
-            </Tabs>
-        </div >
-    )
+                <div className="w-full max-w-md bg-black/60 rounded-xl p-4 text-left border border-red-500/20 shadow-2xl">
+                    <p className="text-[10px] font-mono text-primary uppercase tracking-widest mb-1 opacity-70">Error Trace:</p>
+                    <code className="text-[10px] font-mono text-red-400 break-all leading-tight">
+                        {error?.message || "CON_TIMEOUT: Error de conexión"}
+                    </code>
+                </div>
+
+                <Link href="/dashboard/clients">
+                    <Button
+                        variant="outline"
+                        className="mt-8 text-[10px] font-black uppercase tracking-widest border-primary/20 text-primary hover:bg-primary/5"
+                    >
+                        Reiniciar Protocolo de Conexión
+                    </Button>
+                </Link>
+            </div>
+        )
+    }
 }

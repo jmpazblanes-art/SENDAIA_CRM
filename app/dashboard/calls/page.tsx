@@ -1,207 +1,192 @@
 
 import { createClient } from "@/utils/supabase/server"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Phone, Clock, User, FileText, Play, ExternalLink, Calendar, Activity, Zap, Mic2, ShieldCheck, Waves } from "lucide-react"
+import { DataTable } from "@/components/ui/data-table"
+import { columns, type Call } from "./columns"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Phone, Activity, Clock, ShieldAlert, Bot } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
-import { DataTable } from "@/components/ui/data-table"
-import { ColumnDef } from "@tanstack/react-table"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export const dynamic = 'force-dynamic'
 
-const columns: ColumnDef<any>[] = [
-    {
-        accessorKey: "created_at",
-        header: "Fecha & Hora",
+export default async function CallsPage() {
+    try {
+        const supabase = await createClient()
 
-        cell: ({ row }) => {
-            const date = row.original.created_at ? new Date(row.original.created_at) : null
-            return (
-                <div className="flex flex-col">
-                    <span className="font-bold text-foreground">
-                        {date ? format(date, "d MMM", { locale: es }) : "S/F"}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground font-mono">
-                        {date ? format(date, "HH:mm:ss") : "--:--:--"}
-                    </span>
-                </div>
-            )
+        if (!supabase) {
+            throw new Error("VOICE_CORE_OFFLINE: Punto de enlace con Supabase no detectado. Los Agentes de Voz requieren conexión neuronal activa.")
         }
-    },
-    {
-        accessorKey: "client",
-        header: "Sujeto / Empresa",
-        cell: ({ row }) => (
-            <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center relative overflow-hidden group">
-                    <User className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
-                    <div className="absolute inset-0 bg-primary/5 animate-pulse" />
+
+        const { data: calls, error } = await supabase
+            .from('call_logs')
+            .select(`
+                *,
+                clients (
+                    first_name,
+                    last_name,
+                    company_name,
+                    industry
+                )
+            `)
+            .order('created_at', { ascending: false })
+
+        console.log(`[CallsPage] Conexión establecida. Registros recuperados: ${calls?.length || 0}`)
+
+        if (error) {
+            console.error("Error fetching call_logs:", error)
+            // Si el error es que la tabla no existe, lanzamos un error más descriptivo
+            if (error.code === '42P01') {
+                throw new Error("DATABASE_SCHEMA_MISMATCH: La tabla 'call_logs' no existe en el núcleo de datos.")
+            }
+        }
+
+        const mappedCalls: Call[] = (calls || []).map(call => {
+            const clientData = call.clients as any
+
+            // Entidad de cliente: puede ser objeto o array de un elemento (Supabase join behavior)
+            const clientObj = Array.isArray(clientData) ? clientData[0] : clientData
+
+            // Extracción segura de industria
+            const industry = clientObj?.industry || "Operación IA"
+
+            // Extracción segura de nombre de cliente
+            const clientName = clientObj
+                ? (clientObj.company_name || `${clientObj.first_name || ""} ${clientObj.last_name || ""}`).trim()
+                : (call.from_number || "Número Desconocido")
+
+            // Formatear duración (de segundos a mm:ss)
+            const secs = call.duration_seconds || 0
+            const formatDuration = (s: number) => {
+                const mins = Math.floor(s / 60)
+                const remainingSecs = s % 60
+                return `${mins}:${remainingSecs.toString().padStart(2, '0')}`
+            }
+
+            // Normalización de Sentiment (handle English/Spanish variants)
+            const rawSentiment = (call.sentiment || "Neutral").toLowerCase()
+            let sentiment = "Neutral"
+            if (rawSentiment.startsWith("pos") || rawSentiment === "positive" || rawSentiment === "positivo") sentiment = "Positive"
+            if (rawSentiment.startsWith("neg") || rawSentiment === "negative" || rawSentiment === "negativo") sentiment = "Negative"
+
+            // Mapeo de Status a Outcome
+            const statusToOutcome: Record<string, string> = {
+                'completed': 'Finalizada',
+                'no_answer': 'No Contesta',
+                'busy': 'Ocupado',
+                'failed': 'Fallida',
+                'voicemail': 'Buzón'
+            }
+            const outcome = statusToOutcome[call.status] || call.status || "Finalizada"
+
+            return {
+                id: call.id,
+                date: call.created_at ? format(new Date(call.created_at), 'dd MMM, HH:mm', { locale: es }) : "Reciente",
+                client: clientName || "Desconocido",
+                duration: formatDuration(secs),
+                sentiment: sentiment,
+                outcome: outcome,
+                industry: industry
+            }
+        })
+
+        return (
+            <div className="flex flex-col h-full space-y-6 animate-in fade-in duration-500">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-black tracking-tighter text-white uppercase italic">Agentes de Voz</h1>
+                        <p className="text-muted-foreground italic text-sm font-medium">SendaIA • Monitorización de flujos de voz y síntesis neuronal.</p>
+                    </div>
+                    <div className="flex items-center gap-3 text-[10px] text-primary uppercase font-black tracking-widest bg-primary/10 px-4 py-2 rounded-xl border border-primary/20 animate-pulse">
+                        Sistema Activo • 2 Nodos Online
+                    </div>
                 </div>
-                <div className="flex flex-col">
-                    <span className="text-sm font-bold text-foreground">{row.original.client_name}</span>
-                    <span className="text-[10px] text-muted-foreground italic truncate max-w-[150px]">{row.original.industry || "Operación IA"}</span>
+
+                <div className="grid gap-6 md:grid-cols-3">
+                    <Card className="bg-card border-border shadow-xl">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Total Llamadas</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex items-center justify-between">
+                            <p className="text-3xl font-black text-white">{mappedCalls.length}</p>
+                            <Phone className="h-8 w-8 text-primary/40" />
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-card border-border shadow-xl">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Sentiment Score</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex items-center justify-between">
+                            <p className="text-3xl font-black text-primary">88%</p>
+                            <Activity className="h-8 w-8 text-primary/40" />
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-card border-border shadow-xl">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Tiempo de Respuesta</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex items-center justify-between">
+                            <p className="text-3xl font-black text-white">0.8s</p>
+                            <Clock className="h-8 w-8 text-primary/40" />
+                        </CardContent>
+                    </Card>
                 </div>
+
+                <Card className="bg-card border-border shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
+                    <CardHeader>
+                        <CardTitle className="text-sm uppercase font-black tracking-widest flex items-center gap-2">
+                            <Bot className="h-4 w-4 text-primary" /> Registro de Interacciones Neuronales
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <DataTable columns={columns} data={mappedCalls} />
+                    </CardContent>
+                </Card>
             </div>
         )
-    },
-    {
-        accessorKey: "duration",
-        header: "Duración",
-        cell: ({ row }) => {
-            const seconds = row.original.duration_seconds
-            const mins = Math.floor(seconds / 60)
-            const secs = seconds % 60
-            return (
-                <div className="flex items-center gap-2">
-                    <Clock className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-xs font-mono font-bold">{mins}:{secs.toString().padStart(2, '0')}</span>
+    } catch (e: unknown) {
+        const error = e as Error
+        console.error("Critical failure in CallsPage:", error)
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center animate-in zoom-in-95 duration-500">
+                <div className="relative mb-6">
+                    <div className="h-24 w-24 bg-red-500/10 rounded-full border border-red-500/20 flex items-center justify-center animate-pulse">
+                        <ShieldAlert className="h-12 w-12 text-red-500" />
+                    </div>
+                    <div className="absolute inset-0 bg-red-500/20 blur-[40px] rounded-full scale-150 opacity-20" />
                 </div>
-            )
-        }
-    },
-    {
-        accessorKey: "sentiment",
-        header: "Análisis Sentimiento",
-        cell: ({ row }) => {
-            const s = row.original.sentiment
-            return (
-                <Badge
-                    variant="outline"
-                    className={`text-[9px] font-black uppercase tracking-tighter ${s === 'positive' ? "border-green-500/30 text-green-500 bg-green-500/5 shadow-[0_0_10px_rgba(34,197,94,0.05)]" :
-                        s === 'negative' ? "border-red-500/30 text-red-500 bg-red-500/5" : "border-primary/30 text-primary bg-primary/5"
-                        }`}
-                >
-                    {s || 'neutral'}
-                </Badge>
-            )
-        }
-    },
-    {
-        accessorKey: "outcome",
-        header: "Resolución",
-        cell: ({ row }) => (
-            <Badge variant="secondary" className={`text-[10px] font-bold ${(row.original.status || 'pending') === 'completed' ? "bg-secondary text-primary border border-primary/20" : "bg-destructive/10 text-destructive border border-destructive/20"
-                }`}>
-                {(row.original.status || 'PENDIENTE').toUpperCase()}
-            </Badge>
-        )
-    },
-    {
-        id: "actions",
-        cell: ({ row }) => (
-            <div className="flex items-center gap-1">
-                <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors">
-                    <Play className="h-4 w-4 fill-current" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/20 hover:text-primary transition-colors">
-                    <FileText className="h-4 w-4" />
-                </Button>
+
+                <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-2 italic">Fallo en Agentes de Voz</h2>
+                <p className="text-muted-foreground text-sm max-w-sm mb-8 leading-relaxed">
+                    El sistema de comunicación por voz no puede acceder al núcleo de datos Supabase.
+                </p>
+
+                <div className="w-full max-w-md bg-secondary/30 backdrop-blur-xl rounded-2xl p-6 text-left border border-red-500/30 shadow-2xl">
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></div>
+                        <p className="text-[10px] font-mono text-primary uppercase tracking-[0.2em] font-black">Error Diagnostic Check</p>
+                    </div>
+                    <div className="bg-black/80 rounded-xl p-4 border border-border/50">
+                        <code className="text-[11px] font-mono text-red-400 break-all leading-tight">
+                            {error?.message || "SYNAPSE_CONNECTION_ERROR"}
+                        </code>
+                    </div>
+                    <p className="mt-4 text-[9px] text-muted-foreground italic text-center">
+                        SendaIA: Verifique las variables de entorno para restaurar el servicio de voz.
+                    </p>
+                </div>
+
+                <Link href="/dashboard/calls">
+                    <Button
+                        variant="link"
+                        className="mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-primary/60 hover:text-primary transition-colors"
+                    >
+                        Reintentar Enlace
+                    </Button>
+                </Link>
             </div>
         )
     }
-]
-
-export default async function CallsPage() {
-    const supabase = await createClient()
-
-    const { data: calls } = await supabase
-        .from('call_logs')
-        .select(`
-            *,
-            clients (
-                first_name,
-                last_name,
-                company_name,
-                industry
-            )
-        `)
-        .order('created_at', { ascending: false })
-
-    const mappedCalls = calls?.map(call => ({
-        ...call,
-        //@ts-ignore
-        industry: call.clients?.industry,
-        client_name: call.clients
-            ? //@ts-ignore
-            (call.clients.company_name || `${call.clients.first_name} ${call.clients.last_name}`)
-            : "Número Desconocido"
-    })) || []
-
-    return (
-        <div className="flex flex-col h-full space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-primary/10 rounded-xl border border-primary/30 shadow-[0_0_20px_rgba(201,162,77,0.1)] relative overflow-hidden group">
-                        <Mic2 className="h-7 w-7 text-primary relative z-10" />
-                        <div className="absolute inset-0 bg-primary/5 animate-pulse" />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-black tracking-tighter text-white uppercase italic">SendaIA Voice Control</h1>
-                        <p className="text-muted-foreground italic text-sm font-medium">Monitor de Agentes de Voz en tiempo real.</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-3">
-                    <Button variant="outline" size="sm" className="border-border hover:bg-secondary/30 hidden lg:flex">
-                        <Waves className="h-4 w-4 mr-2 text-primary" /> Audio Logs
-                    </Button>
-                    <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold border-b-2 border-primary-foreground/20 active:border-b-0 transition-all">
-                        <ExternalLink className="h-4 w-4 mr-2" /> Retell Console
-                    </Button>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                <div className="lg:col-span-1 space-y-4">
-                    <Card className="bg-card border-border hover:border-primary/30 transition-all group overflow-hidden relative">
-                        <div className="absolute -right-2 -bottom-2 opacity-5 group-hover:opacity-10 transition-opacity">
-                            <Phone className="h-20 w-20" />
-                        </div>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Flujo 24h</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-end gap-2">
-                                <p className="text-4xl font-black text-foreground">{mappedCalls.length}</p>
-                                <p className="text-[11px] font-bold text-green-500 pb-1">+12 hoy</p>
-                            </div>
-                            <div className="mt-4 h-1.5 w-full bg-secondary rounded-full overflow-hidden">
-                                <div className="h-full bg-primary w-[65%]" />
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="bg-card border-border hover:border-primary/30 transition-all group overflow-hidden relative">
-                        <div className="absolute -right-2 -bottom-2 opacity-5 group-hover:opacity-10 transition-opacity">
-                            <Zap className="h-20 w-20" />
-                        </div>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Ahorro Humano</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-end gap-2">
-                                <p className="text-4xl font-black text-primary">18.5h</p>
-                                <p className="text-[11px] font-bold text-muted-foreground pb-1 italic leading-none">Esta semana</p>
-                            </div>
-                            <p className="text-[10px] text-muted-foreground mt-2 font-medium">Equivalente a <span className="text-foreground font-bold">2.3 jornadas</span> de trabajo.</p>
-                        </CardContent>
-                    </Card>
-
-                    <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <ShieldCheck className="h-4 w-4 text-primary" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">IA Verificada</span>
-                        </div>
-                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                    </div>
-                </div>
-
-                <div className="lg:col-span-3 bg-card border border-border rounded-2xl overflow-hidden shadow-2xl relative">
-                    <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-                    <DataTable columns={columns} data={mappedCalls} />
-                </div>
-            </div>
-        </div>
-    )
 }
