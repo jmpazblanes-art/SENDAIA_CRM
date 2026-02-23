@@ -18,19 +18,24 @@ export async function POST(req: Request) {
         const { call_sid, client_id, status, transcript, summary, sentiment } = body
 
         // Insert into call_logs
+        const normalizedSentiment = (sentiment || 'neutral').toLowerCase();
+
         const { error } = await supabase
             .from('call_logs')
             .insert({
                 call_sid,
-                client_id,
-                status,
-                transcript,
-                summary,
-                sentiment,
+                client_id: client_id || null,
+                status: status || 'completed',
+                transcript: transcript || '',
+                summary: summary || '',
+                sentiment: normalizedSentiment,
                 direction: 'outbound'
             })
 
-        if (error) throw error
+        if (error) {
+            console.error('Database insert error:', error);
+            throw error;
+        }
 
         return NextResponse.json({ success: true })
 

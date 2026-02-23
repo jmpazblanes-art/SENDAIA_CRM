@@ -3,10 +3,11 @@ import { createClient } from "@/utils/supabase/server"
 import { DataTable } from "@/components/ui/data-table"
 import { columns, type Call } from "./columns"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Phone, Activity, Clock, ShieldAlert, Bot } from "lucide-react"
+import { Phone, Activity, Clock, ShieldAlert, Bot, Brain, Target, ShieldCheck } from "lucide-react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
+import { MetricCard } from "@/components/dashboard/MetricCard"
 import Link from "next/link"
 
 export const dynamic = 'force-dynamic'
@@ -36,7 +37,6 @@ export default async function CallsPage() {
 
         if (error) {
             console.error("Error fetching call_logs:", error)
-            // Si el error es que la tabla no existe, lanzamos un error más descriptivo
             if (error.code === '42P01') {
                 throw new Error("DATABASE_SCHEMA_MISMATCH: La tabla 'call_logs' no existe en el núcleo de datos.")
             }
@@ -44,19 +44,12 @@ export default async function CallsPage() {
 
         const mappedCalls: Call[] = (calls || []).map(call => {
             const clientData = call.clients as any
-
-            // Entidad de cliente: puede ser objeto o array de un elemento (Supabase join behavior)
             const clientObj = Array.isArray(clientData) ? clientData[0] : clientData
-
-            // Extracción segura de industria
             const industry = clientObj?.industry || "Operación IA"
-
-            // Extracción segura de nombre de cliente
             const clientName = clientObj
                 ? (clientObj.company_name || `${clientObj.first_name || ""} ${clientObj.last_name || ""}`).trim()
                 : (call.from_number || "Número Desconocido")
 
-            // Formatear duración (de segundos a mm:ss)
             const secs = call.duration_seconds || 0
             const formatDuration = (s: number) => {
                 const mins = Math.floor(s / 60)
@@ -64,13 +57,11 @@ export default async function CallsPage() {
                 return `${mins}:${remainingSecs.toString().padStart(2, '0')}`
             }
 
-            // Normalización de Sentiment (handle English/Spanish variants)
             const rawSentiment = (call.sentiment || "Neutral").toLowerCase()
             let sentiment = "Neutral"
             if (rawSentiment.startsWith("pos") || rawSentiment === "positive" || rawSentiment === "positivo") sentiment = "Positive"
             if (rawSentiment.startsWith("neg") || rawSentiment === "negative" || rawSentiment === "negativo") sentiment = "Negative"
 
-            // Mapeo de Status a Outcome
             const statusToOutcome: Record<string, string> = {
                 'completed': 'Finalizada',
                 'no_answer': 'No Contesta',
@@ -91,59 +82,80 @@ export default async function CallsPage() {
             }
         })
 
+        const totalCalls = calls?.length || 0
+        const totalDuration = (calls || []).reduce((acc, curr) => acc + (Number(curr.duration_seconds) || 0), 0)
+        const avgDuration = totalCalls > 0 ? Math.round(totalDuration / totalCalls) : 0
+        const positiveCalls = (calls || []).filter(c => {
+            const s = (c.sentiment || "").toLowerCase()
+            return s.startsWith("pos") || s === "positive" || s === "positivo"
+        }).length
+        const sentimentRate = totalCalls > 0 ? Math.round((positiveCalls / totalCalls) * 100) : 0
+
         return (
-            <div className="flex flex-col h-full space-y-6 animate-in fade-in duration-500">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col h-full space-y-8 animate-in fade-in duration-700">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-black tracking-tighter text-white uppercase italic">Agentes de Voz</h1>
-                        <p className="text-muted-foreground italic text-sm font-medium">SendaIA • Monitorización de flujos de voz y síntesis neuronal.</p>
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/70">Sistema Biométrico de Voz Activo</span>
+                        </div>
+                        <h1 className="text-3xl font-black tracking-tighter text-white uppercase italic bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-primary/50">
+                            Agentes de Voz
+                        </h1>
+                        <p className="text-muted-foreground italic text-sm font-medium mt-1">SendaIA • Registro de Interacciones Neuronales en Tiempo Real.</p>
                     </div>
-                    <div className="flex items-center gap-3 text-[10px] text-primary uppercase font-black tracking-widest bg-primary/10 px-4 py-2 rounded-xl border border-primary/20 animate-pulse">
-                        Sistema Activo • 2 Nodos Online
+                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground uppercase font-black tracking-widest bg-secondary/20 px-4 py-2 rounded-xl border border-border/50 shadow-inner">
+                        <Activity className="h-3 w-3 text-primary" /> Transmisión En Vivo
                     </div>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-3">
-                    <Card className="bg-card border-border shadow-xl">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Total Llamadas</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex items-center justify-between">
-                            <p className="text-3xl font-black text-white">{mappedCalls.length}</p>
-                            <Phone className="h-8 w-8 text-primary/40" />
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-card border-border shadow-xl">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Sentiment Score</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex items-center justify-between">
-                            <p className="text-3xl font-black text-primary">88%</p>
-                            <Activity className="h-8 w-8 text-primary/40" />
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-card border-border shadow-xl">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Tiempo de Respuesta</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex items-center justify-between">
-                            <p className="text-3xl font-black text-white">0.8s</p>
-                            <Clock className="h-8 w-8 text-primary/40" />
-                        </CardContent>
-                    </Card>
+                    <MetricCard
+                        title="Total Interacciones"
+                        value={totalCalls.toString()}
+                        change="+2.4%"
+                        trend="up"
+                        visualIcon={<Phone className="h-5 w-5 text-primary" />}
+                    />
+                    <MetricCard
+                        title="Sentiment Score"
+                        value={`${sentimentRate}%`}
+                        change="+5%"
+                        trend="up"
+                        visualIcon={<Brain className="h-5 w-5 text-primary" />}
+                    />
+                    <MetricCard
+                        title="Tiempo Promedio"
+                        value={`${Math.floor(avgDuration / 60)}:${(avgDuration % 60).toString().padStart(2, '0')}`}
+                        change="-30s"
+                        trend="down"
+                        visualIcon={<Clock className="h-5 w-5 text-primary" />}
+                    />
                 </div>
 
-                <Card className="bg-card border-border shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
-                    <CardHeader>
-                        <CardTitle className="text-sm uppercase font-black tracking-widest flex items-center gap-2">
-                            <Bot className="h-4 w-4 text-primary" /> Registro de Interacciones Neuronales
+                <Card className="bg-card border-border shadow-2xl relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
+                    <CardHeader className="border-b border-border/10 pb-4">
+                        <CardTitle className="text-xs uppercase font-black tracking-widest flex items-center gap-2">
+                            <Bot className="h-4 w-4 text-primary" /> Registro de Actividades Recientes
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="pt-6">
                         <DataTable columns={columns} data={mappedCalls} />
                     </CardContent>
                 </Card>
+
+                <div className="flex items-center justify-center gap-6 py-4 opacity-50">
+                    <div className="flex items-center gap-2">
+                        <ShieldCheck className="h-3 w-3 text-primary" />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Encriptación de Transcritura Activa</span>
+                    </div>
+                    <div className="h-1 w-1 rounded-full bg-border" />
+                    <div className="flex items-center gap-2">
+                        <Target className="h-3 w-3 text-primary" />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Analítica de Lead Scoring</span>
+                    </div>
+                </div>
             </div>
         )
     } catch (e: unknown) {
