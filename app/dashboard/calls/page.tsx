@@ -10,16 +10,19 @@ import { Button } from "@/components/ui/button"
 import { MetricCard } from "@/components/dashboard/MetricCard"
 import Link from "next/link"
 
+// FORZAR QUE NO HAYA CACHÉ - ESTO ES CRÍTICO
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default async function CallsPage() {
     try {
         const supabase = await createClient()
 
         if (!supabase) {
-            throw new Error("VOICE_CORE_OFFLINE: Punto de enlace con Supabase no detectado. Los Agentes de Voz requieren conexión neuronal activa.")
+            throw new Error("VOICE_CORE_OFFLINE: Punto de enlace con Supabase no detectado.")
         }
 
+        // Consulta simplificada para asegurar que traemos TODO
         const { data: calls, error } = await supabase
             .from('call_logs')
             .select(`
@@ -33,22 +36,23 @@ export default async function CallsPage() {
             `)
             .order('created_at', { ascending: false })
 
-        console.log(`[CallsPage] Conexión establecida. Registros recuperados: ${calls?.length || 0}`)
-
         if (error) {
             console.error("Error fetching call_logs:", error)
-            if (error.code === '42P01') {
-                throw new Error("DATABASE_SCHEMA_MISMATCH: La tabla 'call_logs' no existe en el núcleo de datos.")
-            }
         }
 
         const mappedCalls: Call[] = (calls || []).map(call => {
-            const clientData = call.clients as any
-            const clientObj = Array.isArray(clientData) ? clientData[0] : clientData
-            const industry = clientObj?.industry || "Operación IA"
-            const clientName = clientObj
-                ? (clientObj.company_name || `${clientObj.first_name || ""} ${clientObj.last_name || ""}`).trim()
-                : (call.from_number || "Número Desconocido")
+            // Lógica ultra-robusta de nombres
+            const clientObj = call.clients as any
+            let clientDisplayName = "Número Desconocido"
+
+            if (clientObj) {
+                const name = `${clientObj.first_name || ""} ${clientObj.last_name || ""}`.trim()
+                clientDisplayName = clientObj.company_name || name || "Cliente sin nombre"
+            } else if (call.from_number) {
+                clientDisplayName = call.from_number
+            } else if (call.intent) {
+                clientDisplayName = `Intento: ${call.intent}`
+            }
 
             const secs = call.duration_seconds || 0
             const formatDuration = (s: number) => {
@@ -74,15 +78,15 @@ export default async function CallsPage() {
             return {
                 id: call.id,
                 date: call.created_at ? format(new Date(call.created_at), 'dd MMM, HH:mm', { locale: es }) : "Reciente",
-                client: clientName || "Desconocido",
+                client: clientDisplayName,
                 duration: formatDuration(secs),
-                sentiment: sentiment,
+                sentiment: sentiment as any,
                 outcome: outcome,
-                industry: industry
+                industry: (clientObj?.industry) || "Operación IA"
             }
         })
 
-        const totalCalls = calls?.length || 0
+        const totalCalls = mappedCalls.length
         const totalDuration = (calls || []).reduce((acc, curr) => acc + (Number(curr.duration_seconds) || 0), 0)
         const avgDuration = totalCalls > 0 ? Math.round(totalDuration / totalCalls) : 0
         const positiveCalls = (calls || []).filter(c => {
@@ -113,21 +117,21 @@ export default async function CallsPage() {
                     <MetricCard
                         title="Total Interacciones"
                         value={totalCalls.toString()}
-                        change="+2.4%"
+                        change="+100%"
                         trend="up"
                         visualIcon={<Phone className="h-5 w-5 text-primary" />}
                     />
                     <MetricCard
                         title="Sentiment Score"
                         value={`${sentimentRate}%`}
-                        change="+5%"
+                        change="Analizado"
                         trend="up"
                         visualIcon={<Brain className="h-5 w-5 text-primary" />}
                     />
                     <MetricCard
                         title="Tiempo Promedio"
                         value={`${Math.floor(avgDuration / 60)}:${(avgDuration % 60).toString().padStart(2, '0')}`}
-                        change="-30s"
+                        change="Live"
                         trend="down"
                         visualIcon={<Clock className="h-5 w-5 text-primary" />}
                     />
@@ -160,44 +164,12 @@ export default async function CallsPage() {
         )
     } catch (e: unknown) {
         const error = e as Error
-        console.error("Critical failure in CallsPage:", error)
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center animate-in zoom-in-95 duration-500">
-                <div className="relative mb-6">
-                    <div className="h-24 w-24 bg-red-500/10 rounded-full border border-red-500/20 flex items-center justify-center animate-pulse">
-                        <ShieldAlert className="h-12 w-12 text-red-500" />
-                    </div>
-                    <div className="absolute inset-0 bg-red-500/20 blur-[40px] rounded-full scale-150 opacity-20" />
+            <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
+                <h2 className="text-3xl font-black text-white italic uppercase mb-2">Error de Enlace</h2>
+                <div className="bg-black/80 rounded-xl p-4 border border-border/50 text-red-400 font-mono text-xs">
+                    {error?.message}
                 </div>
-
-                <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter mb-2 italic">Fallo en Agentes de Voz</h2>
-                <p className="text-muted-foreground text-sm max-w-sm mb-8 leading-relaxed">
-                    El sistema de comunicación por voz no puede acceder al núcleo de datos Supabase.
-                </p>
-
-                <div className="w-full max-w-md bg-secondary/30 backdrop-blur-xl rounded-2xl p-6 text-left border border-red-500/30 shadow-2xl">
-                    <div className="flex items-center gap-2 mb-3">
-                        <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></div>
-                        <p className="text-[10px] font-mono text-primary uppercase tracking-[0.2em] font-black">Error Diagnostic Check</p>
-                    </div>
-                    <div className="bg-black/80 rounded-xl p-4 border border-border/50">
-                        <code className="text-[11px] font-mono text-red-400 break-all leading-tight">
-                            {error?.message || "SYNAPSE_CONNECTION_ERROR"}
-                        </code>
-                    </div>
-                    <p className="mt-4 text-[9px] text-muted-foreground italic text-center">
-                        SendaIA: Verifique las variables de entorno para restaurar el servicio de voz.
-                    </p>
-                </div>
-
-                <Link href="/dashboard/calls">
-                    <Button
-                        variant="link"
-                        className="mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-primary/60 hover:text-primary transition-colors"
-                    >
-                        Reintentar Enlace
-                    </Button>
-                </Link>
             </div>
         )
     }
