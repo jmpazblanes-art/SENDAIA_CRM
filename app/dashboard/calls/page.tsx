@@ -1,5 +1,5 @@
 
-import { createClient } from "@/utils/supabase/server"
+import { createAdminClient } from "@/utils/supabase/admin"
 import { DataTable } from "@/components/ui/data-table"
 import { columns, type Call } from "./columns"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,7 +16,7 @@ export const revalidate = 0
 
 export default async function CallsPage() {
     try {
-        const supabase = await createClient()
+        const supabase = await createAdminClient()
 
         if (!supabase) {
             throw new Error("VOICE_CORE_OFFLINE: Punto de enlace con Supabase no detectado.")
