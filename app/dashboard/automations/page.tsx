@@ -2,10 +2,11 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Zap, Link2, Settings, Play, CheckCircle2, AlertCircle, RefreshCw, Activity, Terminal, Brain, ShieldCheck, Clock } from "lucide-react"
+import { Zap, Link2, Settings, Play, CheckCircle2, AlertCircle, RefreshCw, Activity, Terminal, Brain, ShieldCheck, Clock, Layers } from "lucide-react"
 import { createClient } from "@/utils/supabase/server"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
+import { EditConfigDialog } from "@/components/automations/EditConfigDialog"
 
 export const dynamic = 'force-dynamic'
 
@@ -13,58 +14,43 @@ export default async function AutomationsPage() {
     try {
         const supabase = await createClient()
 
+
         const { data: runs, error: runsError } = await supabase
             .from('automation_runs')
             .select('*')
             .order('created_at', { ascending: false })
-            .limit(10)
+            .limit(20)
 
-        if (runsError) {
-            console.error("Supabase fetch error in AutomationsPage:", runsError)
+        // Métricas reales
+        const totalRuns = runs?.length || 0
+        const successRuns = runs?.filter(r => r.status === 'success').length || 0
+        const successRate = totalRuns > 0 ? Math.round((successRuns / totalRuns) * 100) : 100
+
+        // Uptime: días desde el primer run registrado
+        const firstRun = runs && runs.length > 0 ? runs[runs.length - 1] : null
+        const uptimeDays = firstRun
+            ? Math.floor((Date.now() - new Date(firstRun.created_at).getTime()) / (1000 * 60 * 60 * 24))
+            : 0
+
+        const { data: configs, error: configError } = await supabase
+            .from('automation_configs')
+            .select('*')
+            .order('key', { ascending: true })
+
+        if (runsError || configError) {
+            console.error("Supabase fetch error in AutomationsPage:", runsError || configError)
         }
 
-        const workflows = [
-            {
-                id: '1',
-                name: 'Cerebro Ingesta de Leads',
-                target: 'n8n + OpenAI',
-                status: 'active',
-                type: 'CORE',
-                description: 'Recibe datos brutos de RRSS y web, califica el lead mediante IA y asigna prioridad comercial.'
-            },
-            {
-                id: '2',
-                name: 'Agente de Voz Operativo',
-                target: 'Retell AI / n8n',
-                status: 'active',
-                type: 'VOICE',
-                description: 'Gestiona la agenda de SendaIA 24/7. Capaz de cancelar, mover y confirmar citas por voz.'
-            },
-            {
-                id: '3',
-                name: 'Generador de Propuesta Técnica',
-                target: 'n8n + GPT-4o',
-                status: 'inactive',
-                type: 'SALES',
-                description: 'Analiza el diagnóstico de la cita y genera un PDF profesional con la estrategia propuesta.'
-            },
-            {
-                id: '4',
-                name: 'Seguimiento Omnicanal IA',
-                target: 'n8n + WhatsApp',
-                status: 'active',
-                type: 'REMARKETING',
-                description: 'Envía mensajes personalizados de seguimiento basados en el estado del lead en el pipeline.'
-            },
-            {
-                id: '5',
-                name: 'Sincronizador GHL Funnels',
-                target: 'GoHighLevel + CRM',
-                status: 'active',
-                type: 'INTEGRATION',
-                description: 'Recibe datos en tiempo real de demo.sendaia.es y los mapea directamente al pipeline de ventas.'
-            }
-        ]
+        // Map configs to the existing UI structure
+        const workflows = (configs || []).map(cfg => ({
+            id: cfg.id,
+            name: cfg.key.split('_').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+            target: cfg.category === 'voice' ? 'Retell AI / n8n' : 'n8n + OpenAI',
+            status: 'active',
+            type: cfg.category?.toUpperCase() || 'CORE',
+            description: cfg.description || 'Proceso inteligente de automatización.',
+            config: cfg
+        }))
 
         return (
             <div className="flex flex-col h-full space-y-8">
@@ -143,9 +129,7 @@ export default async function AutomationsPage() {
                                                     </div>
                                                 ))}
                                             </div>
-                                            <Button variant="ghost" size="sm" className="h-8 text-xs font-bold text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all">
-                                                CONFIGURACIÓN <Play className="ml-2 h-3 w-3 fill-current" />
-                                            </Button>
+                                            <EditConfigDialog config={wf.config} />
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -161,21 +145,23 @@ export default async function AutomationsPage() {
                             </CardHeader>
                             <CardContent className="space-y-3 relative z-10">
                                 {[
-                                    { name: "Ingreso Leads n8n", url: "https://n8n.sendaia.es/webhook/incoming-lead", icon: Zap },
-                                    { name: "Webhook GHL Directo", url: "/api/webhooks/ghl", icon: Link2 },
-                                    { name: "Agente Voz LOG", url: "https://n8n.sendaia.es/webhook/log-call", icon: Activity }
+                                    { name: "Leads Telegram / n8n", url: "/api/webhooks/ghl", icon: Zap, note: "Apunta tu n8n aquí para capturar leads de Telegram" },
+                                    { name: "Agente de Voz Retell", url: "/api/webhooks/retell", icon: Activity, note: "Configura en Retell dashboard → Webhook URL" },
+                                    { name: "Google Calendar Sync", url: "/api/webhooks/google-calendar", icon: Link2, note: "Sincroniza citas desde Google Calendar" },
                                 ].map((hook, i) => (
-                                    <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-3 bg-background/50 p-2 rounded-lg border border-border/50">
-                                        <div className="flex items-center gap-2 min-w-[140px]">
-                                            <hook.icon className="h-3.5 w-3.5 text-primary" />
-                                            <span className="text-[10px] font-black text-muted-foreground uppercase">{hook.name}</span>
+                                    <div key={i} className="flex flex-col gap-1.5 bg-background/50 p-3 rounded-lg border border-border/50">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                            <div className="flex items-center gap-2 min-w-[160px]">
+                                                <hook.icon className="h-3.5 w-3.5 text-primary shrink-0" />
+                                                <span className="text-[10px] font-black text-muted-foreground uppercase">{hook.name}</span>
+                                            </div>
+                                            <div className="flex-1 p-1 px-3 bg-secondary/30 rounded border border-border/50 font-mono text-[10px] truncate text-primary/80">
+                                                {hook.url}
+                                            </div>
                                         </div>
-                                        <div className="flex-1 p-1 px-3 bg-secondary/30 rounded border border-border/50 font-mono text-[10px] truncate text-primary/80">
-                                            {hook.url}
-                                        </div>
-                                        <Button variant="ghost" size="sm" className="h-8 px-4 text-[10px] font-bold uppercase transition-all hover:bg-primary hover:text-primary-foreground">
-                                            Copia URL
-                                        </Button>
+                                        {hook.note && (
+                                            <p className="text-[9px] text-muted-foreground/60 italic pl-5">{hook.note}</p>
+                                        )}
                                     </div>
                                 ))}
                             </CardContent>
@@ -230,11 +216,11 @@ export default async function AutomationsPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <Card className="bg-secondary/10 border-border p-4">
                                 <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1 italic">Tasa Éxito</p>
-                                <p className="text-2xl font-black text-primary">98.4%</p>
+                                <p className="text-2xl font-black text-primary">{successRate}%</p>
                             </Card>
                             <Card className="bg-secondary/10 border-border p-4">
                                 <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1 italic">Uptime AI</p>
-                                <p className="text-2xl font-black text-green-500">22d</p>
+                                <p className="text-2xl font-black text-green-500">{uptimeDays}d</p>
                             </Card>
                         </div>
                     </div>

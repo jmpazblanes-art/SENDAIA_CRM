@@ -14,6 +14,7 @@ import Link from "next/link"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { AddNoteDialog } from "@/components/clients/AddNoteDialog"
+import { SendEmailDialog } from "@/components/clients/SendEmailDialog"
 
 export const dynamic = 'force-dynamic'
 
@@ -212,6 +213,12 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                                 </div>
                                 <div className="flex gap-2">
                                     <AddNoteDialog clientId={client.id} />
+                                    <SendEmailDialog
+                                        clientId={client.id}
+                                        clientEmail={client.email || undefined}
+                                        clientName={`${client.first_name} ${client.last_name}`.trim()}
+                                        companyName={client.company_name || undefined}
+                                    />
                                 </div>
                             </CardHeader>
                             <CardContent className="px-6 py-8">

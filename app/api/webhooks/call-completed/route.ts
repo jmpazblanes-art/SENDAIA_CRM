@@ -1,46 +1,49 @@
+/**
+ * DEPRECATED: Este endpoint está obsoleto.
+ * El webhook de llamadas se gestiona en /api/webhooks/retell
+ * que tiene la lógica completa con análisis de sentimiento,
+ * creación automática de clientes y extracción de datos.
+ *
+ * Mantenemos este endpoint por compatibilidad pero redirige
+ * toda la lógica al webhook de Retell.
+ */
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase' // Note: This uses browser client, unsafe for server? 
-// We should use createServerClient in API routes context or just basic supabase-js if needed.
-// But for MVP we used createBrowserClient in lib/supabase.ts.
-// Actually, API routes run on server. We need `@supabase/ssr` createServerClient or just standard `createClient` from `@supabase/supabase-js` with Service Role Key for webhooks.
-
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-
-const supabase = createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 export async function POST(req: Request) {
     try {
         const body = await req.json()
-        const { call_sid, client_id, status, transcript, summary, sentiment } = body
 
-        // Insert into call_logs
-        const normalizedSentiment = (sentiment || 'neutral').toLowerCase();
+        // Reenviar al webhook de Retell que tiene la lógica completa
+        const retellUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/webhooks/retell`
 
-        const { error } = await supabase
-            .from('call_logs')
-            .insert({
-                call_sid,
-                client_id: client_id || null,
-                status: status || 'completed',
-                transcript: transcript || '',
-                summary: summary || '',
-                sentiment: normalizedSentiment,
-                direction: 'outbound'
+        const response = await fetch(retellUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                event: 'call_ended',
+                call: {
+                    call_id: body.call_sid,
+                    call_status: body.status || 'completed',
+                    transcript: body.transcript || '',
+                    call_analysis: {
+                        call_summary: body.summary || '',
+                        user_sentiment: body.sentiment || 'neutral',
+                    },
+                    direction: body.direction || 'outbound',
+                    from_number: body.from_number || '',
+                    to_number: body.to_number || '',
+                    duration_ms: (body.duration_seconds || 0) * 1000,
+                    recording_url: body.recording_url || '',
+                }
             })
+        })
 
-        if (error) {
-            console.error('Database insert error:', error);
-            throw error;
-        }
+        const result = await response.json()
+        return NextResponse.json(result)
 
-        return NextResponse.json({ success: true })
-
-    } catch (error) {
-        console.error('Webhook error:', error)
+    } catch (error: any) {
+        console.error('[call-completed] Error forwarding to retell webhook:', error)
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }
 }

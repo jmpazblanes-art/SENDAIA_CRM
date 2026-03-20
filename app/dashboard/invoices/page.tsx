@@ -1,8 +1,9 @@
 
-import { InvoiceList, Invoice } from "@/components/invoices/InvoiceList"
-import { Button } from "@/components/ui/button"
-import { Plus, Receipt, AlertCircle } from "lucide-react"
+import { InvoiceList } from "@/components/invoices/InvoiceList"
+import { CreateInvoiceDialog } from "@/components/invoices/CreateInvoiceDialog"
+import { Receipt } from "lucide-react"
 import { createClient } from "@/utils/supabase/server"
+import { getClientsForInvoiceAction } from "./actions"
 import { format } from "date-fns"
 
 export const dynamic = 'force-dynamic'
@@ -11,23 +12,18 @@ export default async function InvoicesPage() {
     try {
         const supabase = await createClient()
 
-        const { data: invoices, error: invError } = await supabase
-            .from('invoices')
-            .select(`
-                *,
-                clients (
-                    first_name,
-                    last_name,
-                    company_name
-                )
-            `)
-            .order('created_at', { ascending: false })
+        const [invoicesResult, clients] = await Promise.all([
+            supabase
+                .from('invoices')
+                .select(`*, clients(first_name, last_name, company_name)`)
+                .order('created_at', { ascending: false }),
+            getClientsForInvoiceAction(),
+        ])
 
-        if (invError) {
-            console.error("Supabase fetch error in InvoicesPage:", invError)
-        }
+        const { data: invoices, error: invError } = invoicesResult
+        if (invError) console.error("Supabase fetch error in InvoicesPage:", invError)
 
-        const mappedInvoices: Invoice[] = (invoices || []).map(inv => {
+        const mappedInvoices = (invoices || []).map(inv => {
             const client = inv.clients as any
             const clientName = client
                 ? (client.company_name || `${client.first_name || ""} ${client.last_name || ""}`).trim()
@@ -35,12 +31,8 @@ export default async function InvoicesPage() {
 
             let formattedDate = 'N/A'
             try {
-                if (inv.invoice_date) {
-                    formattedDate = format(new Date(inv.invoice_date), 'yyyy-MM-dd')
-                }
-            } catch (e) {
-                console.error("Error formatting invoice date:", e)
-            }
+                if (inv.invoice_date) formattedDate = format(new Date(inv.invoice_date), 'dd/MM/yyyy')
+            } catch (_) { }
 
             return {
                 id: inv.id,
@@ -48,9 +40,17 @@ export default async function InvoicesPage() {
                 client: clientName,
                 date: formattedDate,
                 amount: `${(inv.total || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}€`,
-                status: inv.status || 'draft'
+                status: inv.status || 'draft',
+                client_id: inv.client_id,
             }
         })
+
+        // Métricas rápidas
+        const totalRevenue = (invoices || [])
+            .filter(i => i.status === 'paid')
+            .reduce((acc, i) => acc + (i.total || 0), 0)
+        const pending = (invoices || []).filter(i => i.status === 'sent' || i.status === 'overdue').length
+        const drafts = (invoices || []).filter(i => i.status === 'draft').length
 
         return (
             <div className="flex flex-col h-full space-y-6">
@@ -59,9 +59,23 @@ export default async function InvoicesPage() {
                         <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase italic">Módulo de Facturación</h1>
                         <p className="text-muted-foreground text-sm font-medium italic tracking-tight">Control de revenue y transacciones validadas.</p>
                     </div>
-                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-xl shadow-primary/20 text-xs font-bold uppercase tracking-widest transition-all">
-                        <Plus className="mr-2 h-4 w-4" /> Crear Factura
-                    </Button>
+                    <CreateInvoiceDialog clients={clients} />
+                </div>
+
+                {/* Métricas */}
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-card border border-border rounded-xl p-4">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1">Revenue Cobrado</p>
+                        <p className="text-2xl font-black text-primary">{totalRevenue.toLocaleString('es-ES', { minimumFractionDigits: 2 })}€</p>
+                    </div>
+                    <div className="bg-card border border-border rounded-xl p-4">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1">Pendiente Cobro</p>
+                        <p className="text-2xl font-black text-yellow-500">{pending}</p>
+                    </div>
+                    <div className="bg-card border border-border rounded-xl p-4">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1">Borradores</p>
+                        <p className="text-2xl font-black text-muted-foreground">{drafts}</p>
+                    </div>
                 </div>
 
                 <div className="flex-1 bg-card border border-border rounded-2xl shadow-2xl p-6 relative overflow-hidden">
@@ -72,7 +86,8 @@ export default async function InvoicesPage() {
                 {mappedInvoices.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-24 bg-secondary/5 rounded-2xl border border-dashed border-border/50">
                         <Receipt className="h-16 w-16 text-muted-foreground/20 mb-6" />
-                        <p className="text-muted-foreground font-black uppercase text-[10px] tracking-widest italic opacity-60 text-center">Sin Flujos de Caja Detectados</p>
+                        <p className="text-muted-foreground font-black uppercase text-[10px] tracking-widest italic opacity-60 text-center">Sin Facturas Aún</p>
+                        <p className="text-muted-foreground text-xs mt-2 opacity-40">Crea tu primera factura con el botón de arriba</p>
                     </div>
                 )}
             </div>
@@ -83,13 +98,8 @@ export default async function InvoicesPage() {
             <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
                 <div className="p-8 bg-primary/10 border border-primary/30 rounded-2xl shadow-2xl text-center max-w-md">
                     <Receipt className="h-12 w-12 text-primary mx-auto mb-4 animate-pulse" />
-                    <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Pasarela de Cobro Offline</h2>
-                    <p className="text-muted-foreground mt-2 text-sm leading-relaxed font-medium">
-                        Se ha perdido la sincronización con el gestor de facturación. Los datos financieros están protegidos pero inaccesibles temporalmente.
-                    </p>
-                    <div className="mt-8 pt-6 border-t border-border/50">
-                        <p className="text-[9px] font-mono text-primary/50 uppercase tracking-widest">Error Trace: {error?.message || "Financial Service Disconnected"}</p>
-                    </div>
+                    <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter">Error en Facturación</h2>
+                    <p className="text-muted-foreground mt-2 text-sm">{error?.message || "Error desconocido"}</p>
                 </div>
             </div>
         )

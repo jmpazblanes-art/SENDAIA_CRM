@@ -16,6 +16,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { MessageSquare, Plus } from "lucide-react"
 import { createNoteAction } from "@/app/dashboard/clients/actions"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 interface AddNoteDialogProps {
     clientId: string
@@ -24,6 +26,7 @@ interface AddNoteDialogProps {
 export function AddNoteDialog({ clientId }: AddNoteDialogProps) {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const router = useRouter()
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
@@ -31,6 +34,10 @@ export function AddNoteDialog({ clientId }: AddNoteDialogProps) {
         setLoading(false)
         if (result.success) {
             setOpen(false)
+            toast.success("Nota añadida")
+            router.refresh()
+        } else {
+            toast.error(result.error || "Error al guardar nota")
         }
     }
 
