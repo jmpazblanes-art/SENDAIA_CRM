@@ -16,11 +16,7 @@ export const revalidate = 0
 
 export default async function CallsPage() {
     try {
-        const supabase = await createAdminClient()
-
-        if (!supabase) {
-            throw new Error("VOICE_CORE_OFFLINE: Punto de enlace con Supabase no detectado.")
-        }
+        const supabase = createAdminClient()
 
         // Consulta simplificada para asegurar que traemos TODO
         const { data: calls, error } = await supabase
