@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { resend, FROM_EMAIL, FROM_NAME } from '@/lib/resend'
+import { getResend, FROM_EMAIL, FROM_NAME } from '@/lib/resend'
 import InvoiceEmail from '@/emails/invoice'
 import FollowUpEmail from '@/emails/follow-up'
 
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
         }
 
         // Enviar con idempotency key para evitar duplicados
-        const { data, error } = await resend.emails.send(emailPayload, {
+        const { data, error } = await getResend().emails.send(emailPayload, {
             headers: logId ? { 'Idempotency-Key': `crm-email-${logId}` } : undefined,
         })
 
