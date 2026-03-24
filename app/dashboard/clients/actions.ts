@@ -43,20 +43,28 @@ export async function createNoteAction(formData: FormData) {
     const content = formData.get('content') as string
     const category = (formData.get('category') as string) || 'general'
 
+    // Intentamos insertar con categoría, si falla probamos sin ella (por si la tabla no se ha actualizado)
     const { error } = await supabase.from('lead_notes').insert({
         client_id,
         content,
         category
-        // employee_id derived from user later
     })
 
     if (error) {
-        console.error('Error creating note:', error)
-        return { error: 'Error creating note' }
+        console.warn('Error creating note with category, retrying without it:', error.message)
+        const { error: retryError } = await supabase.from('lead_notes').insert({
+            client_id,
+            content
+        })
+
+        if (retryError) {
+            console.error('Final error creating note:', retryError)
+            return { error: 'No se pudo guardar la nota en la base de datos.' }
+        }
     }
 
-
     revalidatePath(`/dashboard/clients/${client_id}`)
+    revalidatePath('/dashboard')
     return { success: true }
 }
 
@@ -156,22 +164,30 @@ export async function extractLeadFromURLAction(url: string) {
             first_name: leadData.first_name || 'Explorado',
             last_name: leadData.last_name || 'IA',
             email: leadData.email,
-            phone: leadData.phone,
-            company_name: leadData.company_name,
+            phone: leadData.phone || 'Pendiente',
+            company_name: leadData.company_name || 'Nuevo Prospecto',
             industry: leadData.industry,
             opportunity_score: leadData.opportunity_score || 50,
             status: 'lead',
             source: 'ai_extraction'
         }).select().single()
 
-        if (error) throw error
+        if (error) {
+            console.error("Supabase insert error:", error)
+            // Error específico si el email ya existe
+            if (error.code === '23505') {
+                return { error: 'Este cliente ya existe en la base de datos (Email duplicado).' }
+            }
+            throw error
+        }
 
         revalidatePath('/dashboard/clients')
+        revalidatePath('/dashboard')
         return { success: true, data }
 
     } catch (error: any) {
         console.error('AI Extraction Error:', error)
-        return { error: 'No se pudieron extraer datos válidos. Verifica la URL o intenta manualmente.' }
+        return { error: error.message || 'No se pudieron extraer datos válidos. Verifica la URL o intenta manualmente.' }
     }
 }
 

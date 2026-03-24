@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { format, isAfter, startOfToday } from "date-fns"
 import { es } from "date-fns/locale"
 import Link from "next/link"
+import { CreateAppointmentDialog } from "@/components/appointments/CreateAppointmentDialog"
+import { CalComEmbed } from "@/components/appointments/CalComEmbed"
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +34,23 @@ export default async function AppointmentsPage() {
             `)
             .order('start_time', { ascending: true })
 
+
         if (fetchError) console.error("Error fetching appointments:", fetchError)
+
+        const { data: clients, error: clientsError } = await supabase
+            .from('clients')
+            .select('id, first_name, last_name, company_name')
+            .order('first_name', { ascending: true })
+
+        if (clientsError) console.error("Error fetching clients:", clientsError)
+
+        const { data: calConfig } = await supabase
+            .from('automation_configs')
+            .select('value')
+            .eq('key', 'calcom_config')
+            .maybeSingle()
+
+        const bookingUrl = (calConfig?.value as any)?.booking_url || "https://cal.com/sendaia"
 
         const mappedAppointments = (appointments || []).map(apt => {
             const clients = apt.clients as any
@@ -59,9 +77,7 @@ export default async function AppointmentsPage() {
                         <h1 className="text-3xl font-black tracking-tighter text-white uppercase italic">Agenda Inteligente</h1>
                         <p className="text-muted-foreground italic text-sm font-medium">SendaIA • Gestión de activos temporales.</p>
                     </div>
-                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold border-b-2 border-primary-foreground/20 active:border-b-0 transition-all">
-                        <Plus className="h-4 w-4 mr-2" /> Programar Cita
-                    </Button>
+                    <CreateAppointmentDialog clients={clients || []} />
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4">
@@ -88,6 +104,9 @@ export default async function AppointmentsPage() {
                             <TabsTrigger value="list" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold text-xs uppercase italic tracking-widest px-6">
                                 <List className="h-3.5 w-3.5 mr-2" /> Registro Líquido
                             </TabsTrigger>
+                            <TabsTrigger value="booking" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold text-xs uppercase italic tracking-widest px-6">
+                                <Plus className="h-3.5 w-3.5 mr-2" /> Reservas Cal.com
+                            </TabsTrigger>
                         </TabsList>
                     </div>
 
@@ -106,6 +125,9 @@ export default async function AppointmentsPage() {
                             location: apt.location || "Sin ubicación",
                             isOnline: apt.is_online ?? false,
                         }))} />
+                    </TabsContent>
+                    <TabsContent value="booking" className="mt-0">
+                        <CalComEmbed bookingUrl={bookingUrl} />
                     </TabsContent>
                 </Tabs>
             </div>

@@ -18,10 +18,12 @@ import { createClientAction } from "@/app/dashboard/clients/actions"
 import { useState } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 export function CreateClientDialog() {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const router = useRouter()
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
@@ -32,6 +34,7 @@ export function CreateClientDialog() {
             toast.success("Lead registrado correctamente", {
                 description: "Se ha añadido a la base de datos de SendaIA."
             })
+            router.refresh()
         } else {
             toast.error("Error al crear cliente", {
                 description: result?.error || "Inténtalo de nuevo más tarde."

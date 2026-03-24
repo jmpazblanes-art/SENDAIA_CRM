@@ -14,18 +14,19 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, Link2, Zap, FileSpreadsheet, Loader2 } from "lucide-react"
-import { importClientsAction, extractLeadFromURLAction } from "@/app/dashboard/clients/actions"
-import Papa from "papaparse"
+import { Upload, Link as LinkIcon, Loader2, FileSpreadsheet, Sparkles } from "lucide-react"
 import { toast } from "sonner"
+import Papa from "papaparse"
+import { importClientsAction, extractLeadFromURLAction } from "@/app/dashboard/clients/actions"
+import { useRouter } from "next/navigation"
 
 export function ImportLeadDialog() {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [url, setUrl] = useState("")
+    const router = useRouter()
 
-    const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
 
@@ -33,128 +34,132 @@ export function ImportLeadDialog() {
         Papa.parse(file, {
             header: true,
             skipEmptyLines: true,
-            complete: async (results: any) => {
-                const data = results.data
-                const response = await importClientsAction(data)
+            complete: async (results) => {
+                const result = await importClientsAction(results.data)
                 setLoading(false)
-
-                if (response.success) {
+                if (result.success) {
                     setOpen(false)
-                    toast.success("Importación Exitosa", {
-                        description: `Se han importado ${data.length} clientes correctamente.`,
+                    toast.success("Importación completada", {
+                        description: `Se han procesado ${results.data.length} leads correctamente.`
                     })
+                    router.refresh()
                 } else {
-                    toast.error("Error", {
-                        description: response.error || "Error al importar el archivo CSV.",
+                    toast.error("Error en la importación", {
+                        description: result.error
                     })
                 }
             },
-            error: (error: any) => {
+            error: (error) => {
                 setLoading(false)
-                toast.error("Error de Formato", {
-                    description: "No se pudo procesar el archivo CSV.",
-                })
+                toast.error("Error al leer el archivo CSV")
+                console.error(error)
             }
         })
     }
 
     const handleURLExtraction = async () => {
-        if (!url) return
+        if (!url) {
+            toast.error("Por favor, introduce una URL válida")
+            return
+        }
+
         setLoading(true)
-
-        toast.info("Iniciando Extracción IA", {
-            description: "Analizando contenido de la web...",
-        })
-
-        const response = await extractLeadFromURLAction(url)
-        setLoading(false)
-
-        if (response.success) {
-            setOpen(false)
-            toast.success("Lead Extraído", {
-                description: `Se ha creado el lead para ${response.data.first_name || 'Nuevo'} mediante IA SendaIA.`,
-            })
-        } else {
-            toast.error("Error de Extracción", {
-                description: response.error || "La IA no pudo extraer datos válidos de esta URL.",
-            })
+        try {
+            const result = await extractLeadFromURLAction(url)
+            setLoading(false)
+            if (result.success) {
+                setOpen(false)
+                toast.success("Lead extraído con éxito", {
+                    description: `${result.data.company_name || 'Nuevo cliente'} ha sido analizado por la IA.`
+                })
+                router.refresh()
+            } else {
+                toast.error("Error en extracción IA", {
+                    description: result.error
+                })
+            }
+        } catch (error) {
+            setLoading(false)
+            toast.error("Error inesperado en la extracción")
         }
     }
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 border-primary/30 hover:bg-primary/10 hover:text-primary transition-all">
-                    <Upload className="h-4 w-4" /> Importar Leads
+                <Button variant="outline" className="border-primary/20 hover:bg-primary/5 text-primary-foreground font-bold">
+                    <Upload className="mr-2 h-4 w-4" /> Importar Leads
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] bg-card border-border shadow-2xl">
                 <DialogHeader>
-                    <div className="flex items-center gap-2 text-primary font-bold mb-2">
-                        <Zap className="h-5 w-5" />
-                        <DialogTitle>Ingesta de Leads Inteligente</DialogTitle>
-                    </div>
-                    <DialogDescription className="text-muted-foreground italic text-xs">
-                        Añade prospectos masivamente o deja que la IA investigue por ti.
+                    <DialogTitle className="text-xl font-bold text-primary flex items-center gap-2 italic uppercase tracking-tighter">
+                        <Sparkles className="h-5 w-5" /> Ingesta de Datos IA
+                    </DialogTitle>
+                    <DialogDescription className="text-muted-foreground italic">
+                        Elige el método de importación para nutrir tu CRM.
                     </DialogDescription>
                 </DialogHeader>
 
-                <Tabs defaultValue="csv" className="w-full mt-4">
-                    <TabsList className="grid w-full grid-cols-2 bg-secondary/30">
-                        <TabsTrigger value="csv" className="gap-2 data-[state=active]:text-primary">
-                            <FileSpreadsheet className="h-3.5 w-3.5" /> CSV
-                        </TabsTrigger>
-                        <TabsTrigger value="url" className="gap-2 data-[state=active]:text-primary">
-                            <Link2 className="h-3.5 w-3.5" /> URL IA
-                        </TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="csv" className="py-4 space-y-4">
-                        <div className="border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center gap-2 hover:bg-secondary/10 transition-colors cursor-pointer relative group">
-                            <Upload className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
-                            <p className="text-xs text-muted-foreground font-medium group-hover:text-foreground">Click para subir archivo CSV</p>
-                            <p className="text-[10px] text-muted-foreground/50">Formato: first_name, last_name, email, phone, company</p>
+                <div className="grid gap-6 py-6">
+                    {/* CSV Upload Section */}
+                    <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Método Masivo (CSV)</Label>
+                        <div className="relative">
                             <input
                                 type="file"
                                 accept=".csv"
-                                onChange={handleCSVUpload}
-                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                onChange={handleFileUpload}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                 disabled={loading}
                             />
-                        </div>
-                        {loading && (
-                            <div className="flex items-center justify-center gap-2 text-xs text-primary animate-pulse font-bold">
-                                <Loader2 className="h-3 w-3 animate-spin" /> PROCESANDO...
+                            <div className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center justify-center bg-secondary/20 hover:bg-secondary/30 transition-all group">
+                                <FileSpreadsheet className="h-8 w-8 text-muted-foreground mb-2 group-hover:text-primary transition-colors" />
+                                <span className="text-xs font-bold text-foreground">Subir Archivo .csv</span>
+                                <span className="text-[9px] text-muted-foreground mt-1">Formato: name, email, phone, company</span>
                             </div>
-                        )}
-                    </TabsContent>
+                        </div>
+                    </div>
 
-                    <TabsContent value="url" className="py-4 space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="url" className="text-foreground text-xs font-bold uppercase tracking-wider">URL del sitio web / LinkedIn</Label>
-                            <div className="flex gap-2">
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t border-border" />
+                        </div>
+                        <div className="relative flex justify-center text-[8px] uppercase font-black tracking-[0.3em]">
+                            <span className="bg-card px-2 text-muted-foreground">O también</span>
+                        </div>
+                    </div>
+
+                    {/* URL Extraction Section */}
+                    <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Extracción con IA (URL)</Label>
+                        <div className="flex flex-col gap-2">
+                            <div className="relative">
+                                <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                                 <Input
-                                    id="url"
                                     placeholder="https://empresa.com"
                                     value={url}
                                     onChange={(e) => setUrl(e.target.value)}
-                                    className="bg-secondary/30 border-border focus:border-primary"
+                                    className="pl-9 bg-secondary/20 border-border focus:border-primary/50"
+                                    disabled={loading}
                                 />
                             </div>
-                            <p className="text-[10px] text-muted-foreground italic">
-                                SendaIA analizará el contenido para extraer teléfonos, correos y nombres automáticamente.
-                            </p>
+                            <Button
+                                onClick={handleURLExtraction}
+                                disabled={loading || !url}
+                                className="w-full bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 font-black uppercase italic tracking-widest text-[10px]"
+                            >
+                                {loading ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : "Analizar con IA"}
+                            </Button>
                         </div>
-                        <Button
-                            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2 font-bold shadow-lg shadow-primary/20"
-                            onClick={handleURLExtraction}
-                            disabled={loading || !url}
-                        >
-                            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                            {loading ? "EXTRAYENDO..." : "EXTRAER LEAD CON IA"}
-                        </Button>
-                    </TabsContent>
-                </Tabs>
+                    </div>
+                </div>
+
+                <DialogFooter className="sm:justify-start">
+                    <p className="text-[9px] text-muted-foreground font-medium italic italic">
+                        * Los datos serán procesados automáticamente e insertados en tu pipeline de ventas.
+                    </p>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     )
