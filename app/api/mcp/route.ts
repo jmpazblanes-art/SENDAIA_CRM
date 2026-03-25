@@ -219,6 +219,17 @@ const TOOLS = [
       },
     },
   },
+  {
+    name: "crm_delete_client",
+    description: "Eliminar un cliente del CRM por su ID. También elimina sus citas y notas asociadas.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        client_id: { type: "string", description: "UUID of the client to delete" },
+      },
+      required: ["client_id"],
+    },
+  },
 ]
 
 // ── Tool handlers ──
@@ -499,6 +510,40 @@ async function handleToolCall(name: string, args: Record<string, any>): Promise<
         appointments_by_status: appointmentsByStatus,
         next_appointments: recentRes.data ?? [],
       })
+    }
+
+    // ── Delete Client ──
+
+    case "crm_delete_client": {
+      // First get the client to confirm it exists and retrieve its name
+      const { data: clientToDelete, error: fetchErr } = await supabase
+        .from("clients")
+        .select("id, first_name, last_name")
+        .eq("id", args.client_id)
+        .single()
+
+      if (fetchErr || !clientToDelete) return toolError(`Client not found: ${fetchErr?.message || "No client with that ID"}`)
+
+      const clientName = `${clientToDelete.first_name} ${clientToDelete.last_name}`.trim()
+
+      // Delete associated chat_messages
+      await supabase.from("chat_messages").delete().eq("client_id", args.client_id)
+
+      // Delete associated appointments
+      await supabase.from("appointments").delete().eq("client_id", args.client_id)
+
+      // Delete associated notes
+      await supabase.from("client_notes").delete().eq("client_id", args.client_id)
+
+      // Delete the client
+      const { error: deleteErr } = await supabase
+        .from("clients")
+        .delete()
+        .eq("id", args.client_id)
+
+      if (deleteErr) return toolError(`Error deleting client: ${deleteErr.message}`)
+
+      return toolResult({ success: true, message: `Cliente "${clientName}" eliminado correctamente junto con sus datos asociados.` })
     }
 
     // ── Calendar ──

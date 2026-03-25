@@ -138,6 +138,55 @@ async function handleUpdate(params: { client_id: string; [key: string]: any }) {
     })
 }
 
+async function handleDelete(params: { client_id: string }) {
+    if (!params.client_id) {
+        return NextResponse.json({ error: "Se requiere 'client_id'" }, { status: 400 })
+    }
+
+    // First check the client exists and get its name
+    const { data: client, error: fetchError } = await supabase
+        .from("clients")
+        .select("id, first_name, last_name")
+        .eq("id", params.client_id)
+        .single()
+
+    if (fetchError || !client) {
+        return NextResponse.json(
+            { error: "Cliente no encontrado", details: fetchError?.message },
+            { status: 404 }
+        )
+    }
+
+    const clientName = `${client.first_name} ${client.last_name}`.trim()
+
+    // Delete associated chat_messages
+    await supabase.from("chat_messages").delete().eq("client_id", params.client_id)
+
+    // Delete associated appointments
+    await supabase.from("appointments").delete().eq("client_id", params.client_id)
+
+    // Delete associated notes
+    await supabase.from("client_notes").delete().eq("client_id", params.client_id)
+
+    // Delete the client
+    const { error: deleteError } = await supabase
+        .from("clients")
+        .delete()
+        .eq("id", params.client_id)
+
+    if (deleteError) {
+        return NextResponse.json(
+            { error: `Error eliminando cliente: ${deleteError.message}` },
+            { status: 500 }
+        )
+    }
+
+    return NextResponse.json({
+        success: true,
+        message: `Cliente "${clientName}" eliminado correctamente junto con sus datos asociados.`,
+    })
+}
+
 async function handleSearch(params: { query: string }) {
     if (!params.query) {
         return NextResponse.json({ error: "Se requiere 'query'" }, { status: 400 })
@@ -189,9 +238,11 @@ export async function POST(request: Request) {
                 return handleUpdate({ ...params, action } as any)
             case "search":
                 return handleSearch(params as { query: string })
+            case "delete":
+                return handleDelete(params as { client_id: string })
             default:
                 return NextResponse.json(
-                    { error: `Accion desconocida: '${action}'. Usa 'get', 'create', 'update' o 'search'` },
+                    { error: `Accion desconocida: '${action}'. Usa 'get', 'create', 'update', 'search' o 'delete'` },
                     { status: 400 }
                 )
         }

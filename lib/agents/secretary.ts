@@ -219,6 +219,20 @@ const TOOLS = [
             },
         },
     },
+    {
+        type: 'function' as const,
+        function: {
+            name: 'delete_client',
+            description: 'Eliminar un cliente del CRM y todos sus datos asociados (citas, notas)',
+            parameters: {
+                type: 'object',
+                properties: {
+                    client_id: { type: 'string', description: 'ID del cliente a eliminar' },
+                },
+                required: ['client_id'],
+            },
+        },
+    },
 ]
 
 // ── Tool implementations ──
@@ -566,6 +580,40 @@ async function executeCancelAppointment(args: { appointment_id: string }): Promi
     return JSON.stringify({ success: true, appointment: data })
 }
 
+async function executeDeleteClient(args: { client_id: string }): Promise<string> {
+    // First get client name for confirmation message
+    const { data: client, error: fetchError } = await supabase
+        .from('clients')
+        .select('id, first_name, last_name')
+        .eq('id', args.client_id)
+        .single()
+
+    if (fetchError || !client) {
+        return JSON.stringify({ error: `Cliente no encontrado: ${fetchError?.message || 'No existe un cliente con ese ID'}` })
+    }
+
+    const clientName = `${client.first_name} ${client.last_name}`.trim()
+
+    // Delete associated chat_messages
+    await supabase.from('chat_messages').delete().eq('client_id', args.client_id)
+
+    // Delete associated appointments
+    await supabase.from('appointments').delete().eq('client_id', args.client_id)
+
+    // Delete associated notes
+    await supabase.from('client_notes').delete().eq('client_id', args.client_id)
+
+    // Delete the client
+    const { error: deleteError } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', args.client_id)
+
+    if (deleteError) throw new Error(`Error eliminando cliente: ${deleteError.message}`)
+
+    return JSON.stringify({ success: true, message: `Cliente "${clientName}" eliminado correctamente junto con todos sus datos asociados.` })
+}
+
 function executeGetCompanyInfo(): string {
     return JSON.stringify({
         nombre: 'SendaIA',
@@ -613,6 +661,7 @@ async function executeTool(name: string, argsJson: string, chatId: string): Prom
         case 'update_appointment': return executeUpdateAppointment(args)
         case 'cancel_appointment': return executeCancelAppointment(args)
         case 'get_company_info': return executeGetCompanyInfo()
+        case 'delete_client': return executeDeleteClient(args)
         default: return JSON.stringify({ error: `Herramienta desconocida: ${name}` })
     }
 }
