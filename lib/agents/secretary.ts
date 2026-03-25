@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js"
 import { listEvents, createEvent, updateEvent, deleteEvent } from "@/lib/google-calendar"
+import { getResend, FROM_EMAIL, FROM_NAME } from "@/lib/resend"
+import AppointmentConfirmationEmail from "@/emails/appointment-confirmation"
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -328,6 +330,69 @@ async function executeCreateAppointment(args: {
         .single()
 
     if (apptError) throw new Error(`Error creando cita: ${apptError.message}`)
+
+    // Auto-send appointment confirmation email if client has an email
+    try {
+        const { data: clientData } = await supabase
+            .from('clients')
+            .select('email, first_name')
+            .eq('id', clientId)
+            .single()
+
+        if (clientData?.email) {
+            const startDate = new Date(args.start_time)
+            const endDate = new Date(args.end_time)
+            const dateStr = startDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Madrid' })
+            const timeStr = startDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })
+            const durationMin = Math.round((endDate.getTime() - startDate.getTime()) / 60000)
+
+            const typeLabels: Record<string, string> = {
+                demo: 'Demo', discovery_call: 'Llamada de Descubrimiento', onboarding: 'Onboarding',
+                follow_up: 'Seguimiento', technical_review: 'Revisión Técnica', other: 'Otra',
+            }
+
+            const { data: logData } = await supabase
+                .from('email_logs')
+                .insert({
+                    client_id: clientId,
+                    to_email: clientData.email,
+                    to_name: clientData.first_name,
+                    subject: 'Tu cita con SendaIA ha sido confirmada',
+                    type: 'appointment_confirmation',
+                    status: 'pending',
+                })
+                .select('id')
+                .single()
+
+            const logId = logData?.id
+
+            const { data: emailResult, error: emailError } = await getResend().emails.send({
+                from: `${FROM_NAME} <${FROM_EMAIL}>`,
+                to: clientData.email,
+                subject: 'Tu cita con SendaIA ha sido confirmada',
+                react: AppointmentConfirmationEmail({
+                    name: clientData.first_name,
+                    date: dateStr,
+                    time: timeStr,
+                    type: typeLabels[args.type] || args.type,
+                    duration: durationMin > 0 ? durationMin : undefined,
+                }),
+            })
+
+            if (logId) {
+                if (emailError) {
+                    await supabase.from('email_logs').update({ status: 'failed', error_message: emailError.message }).eq('id', logId)
+                } else {
+                    await supabase.from('email_logs').update({ status: 'sent', resend_id: emailResult?.id, sent_at: new Date().toISOString() }).eq('id', logId)
+                }
+            }
+
+            console.log('[Secretary] Confirmation email sent to:', clientData.email)
+        }
+    } catch (emailErr) {
+        console.error('[Secretary] Error sending appointment confirmation email:', emailErr)
+        // Don't block the tool response
+    }
 
     return JSON.stringify({
         success: true,

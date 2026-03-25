@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 import { getResend, FROM_EMAIL, FROM_NAME } from '@/lib/resend'
 import InvoiceEmail from '@/emails/invoice'
 import FollowUpEmail from '@/emails/follow-up'
+import WelcomeEmail from '@/emails/welcome'
+import AppointmentConfirmationEmail from '@/emails/appointment-confirmation'
+import AppointmentReminderEmail from '@/emails/appointment-reminder'
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -46,6 +49,12 @@ export async function POST(req: Request) {
             emailPayload.react = InvoiceEmail(templateData)
         } else if (type === 'follow_up' && templateData) {
             emailPayload.react = FollowUpEmail(templateData)
+        } else if (type === 'welcome' && templateData) {
+            emailPayload.react = WelcomeEmail(templateData)
+        } else if (type === 'appointment_confirmation' && templateData) {
+            emailPayload.react = AppointmentConfirmationEmail(templateData)
+        } else if (type === 'appointment_reminder' && templateData) {
+            emailPayload.react = AppointmentReminderEmail(templateData)
         } else {
             // Email manual con HTML básico
             emailPayload.html = templateData?.html || `<p>${templateData?.message || subject}</p>`

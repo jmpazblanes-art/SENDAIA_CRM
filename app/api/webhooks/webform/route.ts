@@ -1,5 +1,13 @@
 import { createClient } from "@/utils/supabase/server"
+import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
+import { getResend, FROM_EMAIL, FROM_NAME } from "@/lib/resend"
+import WelcomeEmail from "@/emails/welcome"
+
+const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function POST(request: Request) {
     try {
@@ -34,6 +42,53 @@ export async function POST(request: Request) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
         }).catch(() => {})
+
+        // Auto-send welcome email if the lead has an email
+        if (payload.email) {
+            try {
+                const { data: logData } = await supabaseAdmin
+                    .from('email_logs')
+                    .insert({
+                        client_id: data.id,
+                        to_email: payload.email,
+                        to_name: `${first_name} ${last_name}`.trim(),
+                        subject: 'Bienvenido a SendaIA',
+                        type: 'welcome',
+                        status: 'pending',
+                    })
+                    .select('id')
+                    .single()
+
+                const logId = logData?.id
+
+                const { data: emailResult, error: emailError } = await getResend().emails.send({
+                    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+                    to: payload.email,
+                    subject: 'Bienvenido a SendaIA',
+                    react: WelcomeEmail({ name: first_name, company: payload.company_name || undefined }),
+                })
+
+                if (logId) {
+                    if (emailError) {
+                        await supabaseAdmin.from('email_logs').update({
+                            status: 'failed',
+                            error_message: emailError.message,
+                        }).eq('id', logId)
+                    } else {
+                        await supabaseAdmin.from('email_logs').update({
+                            status: 'sent',
+                            resend_id: emailResult?.id,
+                            sent_at: new Date().toISOString(),
+                        }).eq('id', logId)
+                    }
+                }
+
+                console.log('[Webform] Welcome email sent to:', payload.email)
+            } catch (emailErr) {
+                console.error('[Webform] Error sending welcome email:', emailErr)
+                // Don't block the webhook response
+            }
+        }
 
         return NextResponse.json({ success: true, id: data.id })
 
