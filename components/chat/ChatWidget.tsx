@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { MessageSquare, Send, X, Bot, Zap, Loader2 } from "lucide-react"
+import { MessageSquare, Send, X, Bot, Zap, Loader2, Mic } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type Message = {
@@ -23,6 +23,42 @@ export function ChatWidget() {
     ])
 
     const scrollRef = React.useRef<HTMLDivElement>(null)
+    const [isListening, setIsListening] = React.useState(false)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recognitionRef = React.useRef<any>(null)
+    const [speechSupported, setSpeechSupported] = React.useState(false)
+
+    React.useEffect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        if (SpeechRecognitionCtor) {
+            setSpeechSupported(true)
+            const recognition = new SpeechRecognitionCtor()
+            recognition.lang = 'es-ES'
+            recognition.continuous = false
+            recognition.interimResults = false
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            recognition.onresult = (event: any) => {
+                const transcript: string = event.results[0][0].transcript
+                setInput(prev => prev ? prev + ' ' + transcript : transcript)
+            }
+            recognition.onend = () => setIsListening(false)
+            recognition.onerror = () => setIsListening(false)
+
+            recognitionRef.current = recognition
+        }
+    }, [])
+
+    const toggleListening = () => {
+        if (!recognitionRef.current) return
+        if (isListening) {
+            recognitionRef.current.stop()
+        } else {
+            recognitionRef.current.start()
+            setIsListening(true)
+        }
+    }
 
     React.useEffect(() => {
         if (scrollRef.current) {
@@ -138,20 +174,41 @@ export function ChatWidget() {
                     <CardFooter className="p-4 border-t border-border/50 bg-background/50">
                         <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex w-full items-center gap-2 relative">
                             <Input
-                                placeholder="Escribe tu comando..."
+                                placeholder={isListening ? "Escuchando..." : "Escribe tu comando..."}
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
-                                className="flex-1 bg-secondary/50 border-border focus-visible:ring-1 focus-visible:ring-primary h-12 pr-12 rounded-xl italic font-medium"
+                                className={cn(
+                                    "flex-1 bg-secondary/50 border-border focus-visible:ring-1 focus-visible:ring-primary h-12 rounded-xl italic font-medium",
+                                    speechSupported ? "pr-[5.5rem]" : "pr-12"
+                                )}
                                 disabled={isTyping}
                             />
-                            <Button
-                                type="submit"
-                                size="icon"
-                                className="absolute right-1 top-1 h-10 w-10 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all rounded-lg"
-                                disabled={isTyping || !input.trim()}
-                            >
-                                <Send className="h-4 w-4" />
-                            </Button>
+                            <div className="absolute right-1 top-1 flex items-center gap-1">
+                                {speechSupported && (
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        className={cn(
+                                            "h-10 w-10 transition-all rounded-lg",
+                                            isListening
+                                                ? "bg-red-500 text-white hover:bg-red-600 animate-pulse shadow-lg shadow-red-500/30"
+                                                : "bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                                        )}
+                                        onClick={toggleListening}
+                                        disabled={isTyping}
+                                    >
+                                        <Mic className="h-4 w-4" />
+                                    </Button>
+                                )}
+                                <Button
+                                    type="submit"
+                                    size="icon"
+                                    className="h-10 w-10 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all rounded-lg"
+                                    disabled={isTyping || !input.trim()}
+                                >
+                                    <Send className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </form>
                     </CardFooter>
                 </Card>
