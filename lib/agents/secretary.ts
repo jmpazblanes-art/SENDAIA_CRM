@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
-import { listEvents, createEvent } from "@/lib/google-calendar"
+import { listEvents, createEvent, updateEvent, deleteEvent } from "@/lib/google-calendar"
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,6 +17,10 @@ Tu trabajo es:
 3. Tomar notas rápidas.
 4. Consultar la agenda del día.
 5. Listar leads recientes.
+6. Buscar y editar clientes existentes en el CRM.
+7. Ver y gestionar citas: listar, reprogramar y cancelar.
+8. Obtener el perfil completo de un cliente con su historial de citas y mensajes.
+9. Proporcionar información sobre SendaIA y sus servicios.
 
 Reglas:
 - Si te faltan datos obligatorios para una acción, pregunta al usuario antes de ejecutar.
@@ -24,7 +28,9 @@ Reglas:
 - Las fechas siempre en zona horaria Europe/Madrid.
 - Sé concisa en tus respuestas. Usa formato Markdown ligero para Telegram.
 - Si no entiendes el mensaje o no es una instrucción clara, responde de forma amable preguntando qué necesita.
-- Nunca inventes datos que el usuario no te haya dado.`
+- Nunca inventes datos que el usuario no te haya dado.
+- Cuando alguien pregunte por información de la empresa, usa la herramienta get_company_info.
+- Para cancelar o reprogramar citas, confirma siempre con el usuario antes de ejecutar.`
 
 // ── Tool definitions for OpenAI function calling ──
 
@@ -101,6 +107,115 @@ const TOOLS = [
                 properties: {
                     date: { type: 'string', description: 'Fecha en formato YYYY-MM-DD. Si no se da, usa hoy.' },
                 },
+            },
+        },
+    },
+    {
+        type: 'function' as const,
+        function: {
+            name: 'search_clients',
+            description: 'Buscar clientes por nombre, email, teléfono o empresa',
+            parameters: {
+                type: 'object',
+                properties: {
+                    query: { type: 'string', description: 'Texto de búsqueda (nombre, email, teléfono o empresa)' },
+                },
+                required: ['query'],
+            },
+        },
+    },
+    {
+        type: 'function' as const,
+        function: {
+            name: 'get_client_details',
+            description: 'Obtener perfil completo de un cliente con sus citas y mensajes recientes',
+            parameters: {
+                type: 'object',
+                properties: {
+                    client_id: { type: 'string', description: 'ID del cliente' },
+                },
+                required: ['client_id'],
+            },
+        },
+    },
+    {
+        type: 'function' as const,
+        function: {
+            name: 'update_client',
+            description: 'Actualizar datos de un cliente existente',
+            parameters: {
+                type: 'object',
+                properties: {
+                    client_id: { type: 'string', description: 'ID del cliente' },
+                    first_name: { type: 'string', description: 'Nuevo nombre' },
+                    last_name: { type: 'string', description: 'Nuevo apellido' },
+                    phone: { type: 'string', description: 'Nuevo teléfono' },
+                    email: { type: 'string', description: 'Nuevo email' },
+                    company_name: { type: 'string', description: 'Nueva empresa' },
+                    status: { type: 'string', description: 'Nuevo estado (lead, active, inactive, etc.)' },
+                },
+                required: ['client_id'],
+            },
+        },
+    },
+    {
+        type: 'function' as const,
+        function: {
+            name: 'list_appointments',
+            description: 'Listar citas del CRM con filtros opcionales',
+            parameters: {
+                type: 'object',
+                properties: {
+                    date_from: { type: 'string', description: 'Fecha inicio filtro YYYY-MM-DD' },
+                    date_to: { type: 'string', description: 'Fecha fin filtro YYYY-MM-DD' },
+                    status: { type: 'string', enum: ['scheduled', 'completed', 'cancelled', 'no_show'], description: 'Filtrar por estado' },
+                    client_id: { type: 'string', description: 'Filtrar por ID de cliente' },
+                    limit: { type: 'number', description: 'Máximo de resultados (default 10)' },
+                },
+            },
+        },
+    },
+    {
+        type: 'function' as const,
+        function: {
+            name: 'update_appointment',
+            description: 'Actualizar/reprogramar una cita existente',
+            parameters: {
+                type: 'object',
+                properties: {
+                    appointment_id: { type: 'string', description: 'ID de la cita' },
+                    start_time: { type: 'string', description: 'Nueva fecha/hora inicio ISO 8601' },
+                    end_time: { type: 'string', description: 'Nueva fecha/hora fin ISO 8601' },
+                    status: { type: 'string', enum: ['scheduled', 'completed', 'cancelled', 'no_show'], description: 'Nuevo estado' },
+                    type: { type: 'string', enum: ['demo', 'discovery_call', 'onboarding', 'follow_up', 'technical_review', 'other'], description: 'Nuevo tipo' },
+                    title: { type: 'string', description: 'Nuevo título' },
+                },
+                required: ['appointment_id'],
+            },
+        },
+    },
+    {
+        type: 'function' as const,
+        function: {
+            name: 'cancel_appointment',
+            description: 'Cancelar una cita y eliminar el evento de Google Calendar',
+            parameters: {
+                type: 'object',
+                properties: {
+                    appointment_id: { type: 'string', description: 'ID de la cita a cancelar' },
+                },
+                required: ['appointment_id'],
+            },
+        },
+    },
+    {
+        type: 'function' as const,
+        function: {
+            name: 'get_company_info',
+            description: 'Obtener información sobre SendaIA, sus servicios y contacto',
+            parameters: {
+                type: 'object',
+                properties: {},
             },
         },
     },
@@ -253,6 +368,222 @@ async function executeCheckCalendar(args: { date?: string }): Promise<string> {
     }
 }
 
+// ── New tool implementations ──
+
+async function executeSearchClients(args: { query: string }): Promise<string> {
+    const q = `%${args.query}%`
+    const { data, error } = await supabase
+        .from('clients')
+        .select('id, first_name, last_name, email, phone, company_name, status, source, created_at')
+        .or(`first_name.ilike.${q},last_name.ilike.${q},email.ilike.${q},phone.ilike.${q},company_name.ilike.${q}`)
+        .limit(10)
+
+    if (error) throw new Error(`Error buscando clientes: ${error.message}`)
+    return JSON.stringify(data)
+}
+
+async function executeGetClientDetails(args: { client_id: string }): Promise<string> {
+    const { data: client, error: clientError } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', args.client_id)
+        .single()
+
+    if (clientError) throw new Error(`Error obteniendo cliente: ${clientError.message}`)
+
+    const { data: appointments } = await supabase
+        .from('appointments')
+        .select('id, title, type, status, start_time, end_time, notes, created_at')
+        .eq('client_id', args.client_id)
+        .order('start_time', { ascending: false })
+        .limit(10)
+
+    const { data: messages } = await supabase
+        .from('chat_messages')
+        .select('id, role, content, created_at')
+        .eq('client_id', args.client_id)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+    return JSON.stringify({
+        client,
+        appointments: appointments || [],
+        recent_messages: messages || [],
+    })
+}
+
+async function executeUpdateClient(args: {
+    client_id: string
+    first_name?: string
+    last_name?: string
+    phone?: string
+    email?: string
+    company_name?: string
+    status?: string
+}): Promise<string> {
+    const { client_id, ...fields } = args
+    // Remove undefined fields
+    const updates: Record<string, any> = {}
+    if (fields.first_name !== undefined) updates.first_name = fields.first_name
+    if (fields.last_name !== undefined) updates.last_name = fields.last_name
+    if (fields.phone !== undefined) updates.phone = fields.phone
+    if (fields.email !== undefined) updates.email = fields.email
+    if (fields.company_name !== undefined) updates.company_name = fields.company_name
+    if (fields.status !== undefined) updates.status = fields.status
+
+    if (Object.keys(updates).length === 0) {
+        return JSON.stringify({ error: 'No se proporcionaron campos para actualizar' })
+    }
+
+    const { data, error } = await supabase
+        .from('clients')
+        .update(updates)
+        .eq('id', client_id)
+        .select('id, first_name, last_name, email, phone, company_name, status')
+        .single()
+
+    if (error) throw new Error(`Error actualizando cliente: ${error.message}`)
+    return JSON.stringify({ success: true, client: data })
+}
+
+async function executeListAppointments(args: {
+    date_from?: string
+    date_to?: string
+    status?: string
+    client_id?: string
+    limit?: number
+}): Promise<string> {
+    let query = supabase
+        .from('appointments')
+        .select('id, title, type, status, start_time, end_time, google_event_id, notes, created_at, clients(id, first_name, last_name)')
+        .order('start_time', { ascending: true })
+        .limit(args.limit || 10)
+
+    if (args.date_from) {
+        query = query.gte('start_time', `${args.date_from}T00:00:00`)
+    } else {
+        // Default: upcoming appointments from now
+        query = query.gte('start_time', new Date().toISOString())
+    }
+    if (args.date_to) {
+        query = query.lte('start_time', `${args.date_to}T23:59:59`)
+    }
+    if (args.status) {
+        query = query.eq('status', args.status)
+    }
+    if (args.client_id) {
+        query = query.eq('client_id', args.client_id)
+    }
+
+    const { data, error } = await query
+
+    if (error) throw new Error(`Error listando citas: ${error.message}`)
+    return JSON.stringify(data)
+}
+
+async function executeUpdateAppointment(args: {
+    appointment_id: string
+    start_time?: string
+    end_time?: string
+    status?: string
+    type?: string
+    title?: string
+}): Promise<string> {
+    const { appointment_id, ...fields } = args
+    const updates: Record<string, any> = {}
+    if (fields.start_time !== undefined) updates.start_time = fields.start_time
+    if (fields.end_time !== undefined) updates.end_time = fields.end_time
+    if (fields.status !== undefined) updates.status = fields.status
+    if (fields.type !== undefined) updates.type = fields.type
+    if (fields.title !== undefined) updates.title = fields.title
+
+    if (Object.keys(updates).length === 0) {
+        return JSON.stringify({ error: 'No se proporcionaron campos para actualizar' })
+    }
+
+    // Get current appointment to check for google_event_id
+    const { data: current, error: fetchError } = await supabase
+        .from('appointments')
+        .select('google_event_id, title, type')
+        .eq('id', appointment_id)
+        .single()
+
+    if (fetchError) throw new Error(`Error obteniendo cita: ${fetchError.message}`)
+
+    // Update Google Calendar if date changed and google_event_id exists
+    if (current?.google_event_id && (fields.start_time || fields.end_time || fields.title)) {
+        try {
+            const calUpdates: Record<string, any> = {}
+            if (fields.start_time) calUpdates.start = fields.start_time
+            if (fields.end_time) calUpdates.end = fields.end_time
+            if (fields.title) calUpdates.summary = `${(fields.type || current.type).toUpperCase()}: ${fields.title}`
+            else if (fields.type) calUpdates.summary = `${fields.type.toUpperCase()}: ${current.title}`
+            await updateEvent(current.google_event_id, calUpdates)
+        } catch (err) {
+            console.error('[Secretary] Error actualizando evento en Google Calendar:', err)
+        }
+    }
+
+    const { data, error } = await supabase
+        .from('appointments')
+        .update(updates)
+        .eq('id', appointment_id)
+        .select('id, title, type, status, start_time, end_time')
+        .single()
+
+    if (error) throw new Error(`Error actualizando cita: ${error.message}`)
+    return JSON.stringify({ success: true, appointment: data })
+}
+
+async function executeCancelAppointment(args: { appointment_id: string }): Promise<string> {
+    // Get the appointment to find google_event_id
+    const { data: appointment, error: fetchError } = await supabase
+        .from('appointments')
+        .select('id, google_event_id, title')
+        .eq('id', args.appointment_id)
+        .single()
+
+    if (fetchError) throw new Error(`Error obteniendo cita: ${fetchError.message}`)
+
+    // Delete Google Calendar event if exists
+    if (appointment?.google_event_id) {
+        try {
+            await deleteEvent(appointment.google_event_id)
+        } catch (err) {
+            console.error('[Secretary] Error eliminando evento de Google Calendar:', err)
+        }
+    }
+
+    // Update status to cancelled
+    const { data, error } = await supabase
+        .from('appointments')
+        .update({ status: 'cancelled' })
+        .eq('id', args.appointment_id)
+        .select('id, title, status')
+        .single()
+
+    if (error) throw new Error(`Error cancelando cita: ${error.message}`)
+    return JSON.stringify({ success: true, appointment: data })
+}
+
+function executeGetCompanyInfo(): string {
+    return JSON.stringify({
+        nombre: 'SendaIA',
+        descripcion: 'SendaIA es una empresa de automatización e inteligencia artificial para negocios.',
+        servicios: [
+            'CRM inteligente',
+            'Agentes IA (Telegram, voz, web)',
+            'Automatización de procesos',
+            'Integración con herramientas existentes (Google Calendar, GoHighLevel, etc.)',
+        ],
+        web: 'sendaia.es',
+        contacto: 'info@sendaia.es',
+        propuesta_de_valor: 'Tu tiempo es oro. Nosotros ponemos el sistema.',
+        ideal_para: 'Clínicas, despachos, inmobiliarias, servicios profesionales.',
+        nota: 'Este bot mismo es un ejemplo del producto de SendaIA.',
+    })
+}
+
 // ── Tool dispatcher ──
 
 async function executeTool(name: string, argsJson: string, chatId: string): Promise<string> {
@@ -263,6 +594,13 @@ async function executeTool(name: string, argsJson: string, chatId: string): Prom
         case 'add_note': return executeAddNote(args, chatId)
         case 'list_leads': return executeListLeads(args)
         case 'check_calendar': return executeCheckCalendar(args)
+        case 'search_clients': return executeSearchClients(args)
+        case 'get_client_details': return executeGetClientDetails(args)
+        case 'update_client': return executeUpdateClient(args)
+        case 'list_appointments': return executeListAppointments(args)
+        case 'update_appointment': return executeUpdateAppointment(args)
+        case 'cancel_appointment': return executeCancelAppointment(args)
+        case 'get_company_info': return executeGetCompanyInfo()
         default: return JSON.stringify({ error: `Herramienta desconocida: ${name}` })
     }
 }

@@ -168,3 +168,53 @@ export async function createEvent(event: {
 
     return res.json()
 }
+
+export async function updateEvent(
+    eventId: string,
+    updates: {
+        summary?: string
+        description?: string
+        start?: string // ISO datetime
+        end?: string   // ISO datetime
+    }
+): Promise<CalendarEvent> {
+    const token = await getAccessToken()
+    const calendarId = encodeURIComponent(getCalendarId())
+
+    const body: Record<string, any> = {}
+    if (updates.summary) body.summary = updates.summary
+    if (updates.description !== undefined) body.description = updates.description
+    if (updates.start) body.start = { dateTime: updates.start, timeZone: TIMEZONE }
+    if (updates.end) body.end = { dateTime: updates.end, timeZone: TIMEZONE }
+
+    const res = await fetch(`${CALENDAR_API}/calendars/${calendarId}/events/${encodeURIComponent(eventId)}`, {
+        method: 'PATCH',
+        headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+    })
+
+    if (!res.ok) {
+        const err = await res.text()
+        throw new Error(`Google Calendar updateEvent error: ${err}`)
+    }
+
+    return res.json()
+}
+
+export async function deleteEvent(eventId: string): Promise<void> {
+    const token = await getAccessToken()
+    const calendarId = encodeURIComponent(getCalendarId())
+
+    const res = await fetch(`${CALENDAR_API}/calendars/${calendarId}/events/${encodeURIComponent(eventId)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+    })
+
+    if (!res.ok) {
+        const err = await res.text()
+        throw new Error(`Google Calendar deleteEvent error: ${err}`)
+    }
+}
