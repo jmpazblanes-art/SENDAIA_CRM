@@ -23,6 +23,19 @@ function verifyAuth(request: Request): boolean {
   return bearer === token
 }
 
+// ── CORS helpers ──
+
+const CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, Mcp-Session-Id",
+  "Access-Control-Expose-Headers": "Mcp-Session-Id",
+}
+
+function corsHeaders(extra?: Record<string, string>): Record<string, string> {
+  return { ...CORS_HEADERS, ...extra }
+}
+
 // ── JSON-RPC helpers ──
 
 interface JsonRpcRequest {
@@ -32,12 +45,18 @@ interface JsonRpcRequest {
   id?: number | string | null
 }
 
-function jsonrpcSuccess(id: number | string | null | undefined, result: any) {
-  return NextResponse.json({ jsonrpc: "2.0", result, id: id ?? null })
+function jsonrpcSuccess(id: number | string | null | undefined, result: any, extraHeaders?: Record<string, string>) {
+  return NextResponse.json(
+    { jsonrpc: "2.0", result, id: id ?? null },
+    { headers: corsHeaders({ "Content-Type": "application/json", ...extraHeaders }) }
+  )
 }
 
-function jsonrpcError(id: number | string | null | undefined, code: number, message: string) {
-  return NextResponse.json({ jsonrpc: "2.0", error: { code, message }, id: id ?? null })
+function jsonrpcError(id: number | string | null | undefined, code: number, message: string, status?: number) {
+  return NextResponse.json(
+    { jsonrpc: "2.0", error: { code, message }, id: id ?? null },
+    { status: status ?? 200, headers: corsHeaders({ "Content-Type": "application/json" }) }
+  )
 }
 
 function toolResult(data: any) {
@@ -583,15 +602,16 @@ async function handleToolCall(name: string, args: Record<string, any>): Promise<
   }
 }
 
-// ── Route handler ──
+// ── Route handlers ──
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders() })
+}
 
 export async function POST(request: Request) {
   try {
     if (!verifyAuth(request)) {
-      return NextResponse.json(
-        { jsonrpc: "2.0", error: { code: -32001, message: "Unauthorized" }, id: null },
-        { status: 401 }
-      )
+      return jsonrpcError(null, -32001, "Unauthorized", 401)
     }
 
     const body: JsonRpcRequest = await request.json()
@@ -600,13 +620,23 @@ export async function POST(request: Request) {
       return jsonrpcError(body.id, -32600, "Invalid JSON-RPC 2.0 request")
     }
 
+    // Pass through session ID from client on non-initialize requests
+    const incomingSessionId = request.headers.get("mcp-session-id")
+
     switch (body.method) {
-      case "initialize":
-        return jsonrpcSuccess(body.id, {
-          protocolVersion: "2024-11-05",
-          capabilities: { tools: {} },
-          serverInfo: { name: "sendaia-crm", version: "1.0.0" },
-        })
+      case "initialize": {
+        // Generate a new session ID and return it in the response header
+        const sessionId = crypto.randomUUID()
+        return jsonrpcSuccess(
+          body.id,
+          {
+            protocolVersion: "2024-11-05",
+            capabilities: { tools: {} },
+            serverInfo: { name: "sendaia-crm", version: "1.0.0" },
+          },
+          { "Mcp-Session-Id": sessionId }
+        )
+      }
 
       case "notifications/initialized":
         // Client acknowledgment — no response needed but return success
@@ -639,19 +669,30 @@ export async function POST(request: Request) {
     console.error("[MCP] Error:", error)
     return NextResponse.json(
       { jsonrpc: "2.0", error: { code: -32603, message: error.message || "Internal error" }, id: null },
-      { status: 500 }
+      { status: 500, headers: corsHeaders({ "Content-Type": "application/json" }) }
     )
   }
 }
 
-// Handle GET for health check / discovery
+// Handle GET for server info / health check
 export async function GET() {
-  return NextResponse.json({
-    name: "sendaia-crm",
-    version: "1.0.0",
-    protocol: "MCP",
-    protocolVersion: "2024-11-05",
-    description: "Sendaia CRM MCP Server — manage clients, appointments, notes, and calendar",
-    tools: TOOLS.length,
-  })
+  return NextResponse.json(
+    {
+      name: "sendaia-crm",
+      version: "1.0.0",
+      protocol: "MCP",
+      protocolVersion: "2024-11-05",
+      description: "Sendaia CRM MCP Server — manage clients, appointments, notes, and calendar",
+      tools: TOOLS.length,
+    },
+    { headers: corsHeaders({ "Content-Type": "application/json" }) }
+  )
+}
+
+// Handle DELETE for session cleanup
+export async function DELETE() {
+  return NextResponse.json(
+    { ok: true },
+    { headers: corsHeaders({ "Content-Type": "application/json" }) }
+  )
 }
