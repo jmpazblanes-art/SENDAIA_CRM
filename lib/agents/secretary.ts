@@ -20,7 +20,7 @@ Tu trabajo es:
 6. Buscar y editar clientes existentes en el CRM.
 7. Ver y gestionar citas: listar, reprogramar y cancelar.
 8. Obtener el perfil completo de un cliente con su historial de citas y mensajes.
-9. Proporcionar información sobre SendaIA y sus servicios.
+9. Proporcionar información completa sobre SendaIA: servicios, precios, paquetes y propuesta de valor.
 
 Reglas:
 - Si te faltan datos obligatorios para una acción, pregunta al usuario antes de ejecutar.
@@ -569,18 +569,30 @@ async function executeCancelAppointment(args: { appointment_id: string }): Promi
 function executeGetCompanyInfo(): string {
     return JSON.stringify({
         nombre: 'SendaIA',
-        descripcion: 'SendaIA es una empresa de automatización e inteligencia artificial para negocios.',
+        lema: 'Tu tiempo es oro. Nosotros ponemos el sistema.',
+        descripcion: 'Agencia especializada en automatización e IA para PYMEs españolas. Diseñamos sistemas operativos con IA que eliminan tareas manuales.',
         servicios: [
-            'CRM inteligente',
-            'Agentes IA (Telegram, voz, web)',
-            'Automatización de procesos',
-            'Integración con herramientas existentes (Google Calendar, GoHighLevel, etc.)',
+            { nombre: 'Automatización de Procesos (n8n)', descripcion: 'Conectamos apps y herramientas para que los procesos fluyan solos.', setup: '500-15.000€', mensual: '59-799€/mes' },
+            { nombre: 'Agentes IA Conversacionales', descripcion: 'Asistentes 24/7 por WhatsApp, Telegram o web.', setup: '600-6.000€', mensual: '79-499€/mes' },
+            { nombre: 'Agentes de Voz con IA', descripcion: 'Recepcionistas telefónicas virtuales con voz natural.', setup: '1.500-6.000€', mensual: '199-599€/mes' },
+            { nombre: 'Automatización Documental', descripcion: 'OCR de facturas, expedientes, documentos con IA.', setup: '800-7.000€', mensual: '99-499€/mes' },
+            { nombre: 'Desarrollo Web con IA', descripcion: 'Landings, SaaS a medida con IA integrada.', setup: '500-20.000€', mensual: '0-799€/mes' },
+            { nombre: 'Consultoría y Auditoría', descripcion: 'Análisis de procesos y hoja de ruta.', precio: '300-1.500€ (se descuenta del proyecto)' },
         ],
-        web: 'sendaia.es',
-        contacto: 'info@sendaia.es',
-        propuesta_de_valor: 'Tu tiempo es oro. Nosotros ponemos el sistema.',
-        ideal_para: 'Clínicas, despachos, inmobiliarias, servicios profesionales.',
-        nota: 'Este bot mismo es un ejemplo del producto de SendaIA.',
+        paquetes: [
+            { nombre: 'STARTER', contenido: '1-2 workflows + 1 agente', setup: '1.500-2.500€', mensual: 'desde 149€/mes' },
+            { nombre: 'BUSINESS', contenido: '3-5 workflows + agente + CRM + docs', setup: '4.000-8.000€', mensual: 'desde 349€/mes' },
+            { nombre: 'PRO', contenido: 'Sistema completo multi-proceso + voz + chat + WhatsApp', setup: '8.000-15.000€', mensual: 'desde 699€/mes' },
+        ],
+        ideal_para: 'Clínicas, despachos, inmobiliarias, peritos, franquicias, academias, e-commerce, hostelería',
+        contacto: {
+            email: 'info@sendaia.es',
+            web: 'sendaia.es',
+            demo: 'demo.sendaia.es',
+            ubicacion: 'Granada, España (remoto toda España)',
+        },
+        proceso: 'Investigación → Diagnóstico → Propuesta → Implementación → Entrega/Formación → Mantenimiento',
+        modelo_negocio: 'Setup + Retainer mensual. Sin costes ocultos. Presupuesto cerrado. La auditoría inicial es gratuita y se descuenta si contratas.',
     })
 }
 
