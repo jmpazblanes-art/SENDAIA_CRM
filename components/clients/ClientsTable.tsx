@@ -53,9 +53,9 @@ const columns: ColumnDef<any>[] = [
     },
     {
         accessorKey: "phone",
-        header: "Teléfono",
+        header: () => <span className="hidden md:inline">Teléfono</span>,
         cell: ({ row }) => (
-            <span className="text-muted-foreground text-xs font-mono">{row.original.phone || "—"}</span>
+            <span className="hidden md:inline text-muted-foreground text-xs font-mono">{row.original.phone || "—"}</span>
         ),
     },
     {
@@ -73,12 +73,12 @@ const columns: ColumnDef<any>[] = [
     },
     {
         accessorKey: "priority",
-        header: "Prioridad",
+        header: () => <span className="hidden lg:inline">Prioridad</span>,
         cell: ({ row }) => {
             const priority = row.original.priority || "medium"
             const cfg = priorityConfig[priority] || priorityConfig.medium
             return (
-                <span className={cn("text-[10px] font-black uppercase", cfg.color)}>
+                <span className={cn("hidden lg:inline text-[10px] font-black uppercase", cfg.color)}>
                     {cfg.label}
                 </span>
             )
@@ -86,9 +86,9 @@ const columns: ColumnDef<any>[] = [
     },
     {
         accessorKey: "industry",
-        header: "Sector",
+        header: () => <span className="hidden lg:inline">Sector</span>,
         cell: ({ row }) => (
-            <span className="text-muted-foreground text-xs">{row.original.industry || "—"}</span>
+            <span className="hidden lg:inline text-muted-foreground text-xs">{row.original.industry || "—"}</span>
         ),
     },
 ]

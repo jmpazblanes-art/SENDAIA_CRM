@@ -103,9 +103,9 @@ export function AppointmentList({ data }: AppointmentListProps) {
                                     key={apt.id}
                                     className="group relative overflow-hidden border-border bg-card hover:bg-secondary/10 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 border-l-4 border-l-transparent hover:border-l-primary"
                                 >
-                                    <CardContent className="p-4 flex items-center justify-between gap-4">
-                                        <div className="flex items-start gap-4 flex-1">
-                                            <div className="flex flex-col items-center justify-center bg-secondary/20 rounded-lg p-2 min-w-[60px] h-14 border border-border/50 group-hover:bg-primary/10 transition-colors">
+                                    <CardContent className="p-3 md:p-4 flex items-center justify-between gap-2 md:gap-4">
+                                        <div className="flex items-start gap-2 md:gap-4 flex-1 min-w-0">
+                                            <div className="flex flex-col items-center justify-center bg-secondary/20 rounded-lg p-1.5 md:p-2 min-w-[50px] md:min-w-[60px] h-12 md:h-14 border border-border/50 group-hover:bg-primary/10 transition-colors shrink-0">
                                                 <span className="text-xs font-bold text-foreground">
                                                     {format(apt.start, "HH:mm")}
                                                 </span>
@@ -114,9 +114,9 @@ export function AppointmentList({ data }: AppointmentListProps) {
                                                 </span>
                                             </div>
 
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="font-bold text-foreground text-sm group-hover:text-primary transition-colors">{apt.title}</h3>
+                                            <div className="space-y-1 min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <h3 className="font-bold text-foreground text-xs md:text-sm group-hover:text-primary transition-colors truncate">{apt.title}</h3>
                                                     <Badge className={cn("text-[9px] px-1.5 h-4 font-bold border", statusColors[apt.status] || "bg-secondary text-muted-foreground")}>
                                                         {apt.status.toUpperCase()}
                                                     </Badge>
@@ -138,7 +138,7 @@ export function AppointmentList({ data }: AppointmentListProps) {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-2">
+                                        <div className="hidden md:flex items-center gap-2">
                                             <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <ChevronRight className="h-4 w-4" />
                                             </Button>

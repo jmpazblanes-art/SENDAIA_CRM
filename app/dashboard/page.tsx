@@ -133,20 +133,20 @@ export default async function DashboardPage() {
         })
 
         return (
-            <div className="flex flex-col h-full space-y-8 animate-in fade-in duration-700">
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex flex-col h-full space-y-4 md:space-y-8 animate-in fade-in duration-700">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-4">
                     <div>
-                        <h1 className="text-3xl font-black tracking-tighter text-white uppercase italic bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-primary/50">
+                        <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase italic bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-primary/50">
                             Neural Command Center
                         </h1>
-                        <p className="text-muted-foreground italic text-sm font-medium mt-1">SendaIA • Gestión de Activos y Crecimiento.</p>
+                        <p className="text-muted-foreground italic text-xs md:text-sm font-medium mt-1">SendaIA • Gestión de Activos y Crecimiento.</p>
                     </div>
-                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground uppercase font-black tracking-widest bg-secondary/20 px-4 py-2 rounded-xl border border-border/50 shadow-inner">
+                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground uppercase font-black tracking-widest bg-secondary/20 px-3 md:px-4 py-1.5 md:py-2 rounded-xl border border-border/50 shadow-inner">
                         <Clock className="h-3 w-3 text-primary animate-pulse" /> Live Feed: {format(new Date(), "HH:mm")}
                     </div>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-3 md:gap-6 grid-cols-2 lg:grid-cols-4">
                     <MetricCard
                         title="Revenue Operativo"
                         value={`${(totalRevenue).toLocaleString('es-ES')}€`}
@@ -177,8 +177,8 @@ export default async function DashboardPage() {
                     />
                 </div>
 
-                <div className="grid gap-8 lg:grid-cols-7">
-                    <div className="lg:col-span-4 space-y-8">
+                <div className="grid gap-4 md:gap-8 lg:grid-cols-7">
+                    <div className="lg:col-span-4 space-y-4 md:space-y-8">
                         <Card className="bg-card border-border shadow-2xl overflow-hidden relative group">
                             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
                                 <Brain className="h-32 w-32 text-primary" />
@@ -194,7 +194,7 @@ export default async function DashboardPage() {
                         </Card>
                         <LatestLeadsTable leads={mappedLeads} />
                     </div>
-                    <div className="lg:col-span-3 space-y-8">
+                    <div className="lg:col-span-3 space-y-4 md:space-y-8">
                         <DashboardCalendar />
                         <RecentActivity activities={realActivities} />
                     </div>

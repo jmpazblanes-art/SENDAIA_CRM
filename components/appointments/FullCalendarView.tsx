@@ -68,24 +68,24 @@ export function FullCalendarView({ appointments }: FullCalendarViewProps) {
     return (
         <div className="flex flex-col h-full bg-card border border-border rounded-xl shadow-2xl overflow-hidden">
             {/* Calendar Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border bg-secondary/5">
-                <div className="flex items-center gap-4">
-                    <h2 className="text-xl font-bold text-foreground capitalize">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 md:p-4 gap-2 border-b border-border bg-secondary/5">
+                <div className="flex items-center gap-2 md:gap-4">
+                    <h2 className="text-base md:text-xl font-bold text-foreground capitalize">
                         {format(currentMonth, "MMMM yyyy", { locale: es })}
                     </h2>
                     <div className="flex items-center bg-background border border-border rounded-lg p-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prevMonth}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 md:h-8 md:w-8" onClick={prevMonth}>
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="px-3 h-8 text-xs font-medium" onClick={() => setCurrentMonth(new Date())}>
+                        <Button variant="ghost" size="sm" className="px-2 md:px-3 h-7 md:h-8 text-xs font-medium" onClick={() => setCurrentMonth(new Date())}>
                             Hoy
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={nextMonth}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 md:h-8 md:w-8" onClick={nextMonth}>
                             <ChevronRight className="h-4 w-4" />
                         </Button>
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="hidden sm:flex gap-2">
                     <div className="flex items-center gap-4 mr-4">
                         <div className="flex items-center gap-1.5">
                             <div className="h-2 w-2 rounded-full bg-green-500" />
@@ -109,7 +109,7 @@ export function FullCalendarView({ appointments }: FullCalendarViewProps) {
             </div>
 
             {/* Calendar Grid */}
-            <div className="grid grid-cols-7 flex-1 auto-rows-fr overflow-y-auto min-h-[600px]">
+            <div className="grid grid-cols-7 flex-1 auto-rows-fr overflow-y-auto min-h-[400px] md:min-h-[600px]">
                 {calendarDays.map((day, idx) => {
                     const dayAppointments = getAppointmentsForDay(day)
                     const isOutside = !isSameMonth(day, monthStart)
@@ -119,27 +119,30 @@ export function FullCalendarView({ appointments }: FullCalendarViewProps) {
                         <div
                             key={day.toString()}
                             className={cn(
-                                "min-h-[120px] p-2 border-r border-b border-border group transition-all duration-200",
+                                "min-h-[60px] md:min-h-[120px] p-1 md:p-2 border-r border-b border-border group transition-all duration-200",
                                 isOutside ? "bg-secondary/5 text-muted-foreground/30" : "bg-card hover:bg-secondary/5",
                                 idx % 7 === 6 ? "border-r-0" : ""
                             )}
                         >
-                            <div className="flex justify-between items-start mb-2">
+                            <div className="flex justify-between items-start mb-0.5 md:mb-2">
                                 <span className={cn(
-                                    "text-sm font-bold flex items-center justify-center h-7 w-7 rounded-full transition-colors",
+                                    "text-[10px] md:text-sm font-bold flex items-center justify-center h-5 w-5 md:h-7 md:w-7 rounded-full transition-colors",
                                     isTodayDate ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-foreground/70",
                                     isOutside && "opacity-30"
                                 )}>
                                     {format(day, "d")}
                                 </span>
                                 {dayAppointments.length > 0 && !isOutside && (
-                                    <span className="text-[9px] font-bold text-muted-foreground bg-secondary/40 px-1.5 py-0.5 rounded uppercase">
+                                    <span className="hidden md:inline text-[9px] font-bold text-muted-foreground bg-secondary/40 px-1.5 py-0.5 rounded uppercase">
                                         {dayAppointments.length} {dayAppointments.length === 1 ? 'Cita' : 'Citas'}
                                     </span>
                                 )}
+                                {dayAppointments.length > 0 && !isOutside && (
+                                    <span className="md:hidden h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                                )}
                             </div>
 
-                            <div className="space-y-1 overflow-y-auto max-h-[80px] custom-scrollbar">
+                            <div className="space-y-1 overflow-y-auto max-h-[30px] md:max-h-[80px] custom-scrollbar hidden md:block">
                                 {dayAppointments.map((apt) => (
                                     <TooltipProvider key={apt.id}>
                                         <Tooltip delayDuration={300}>

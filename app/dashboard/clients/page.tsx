@@ -27,10 +27,10 @@ export default async function ClientsPage() {
         if (error) console.error("Error fetching clients:", error)
 
         return (
-            <div className="flex flex-col h-full space-y-6 animate-in fade-in duration-500">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col h-full space-y-4 md:space-y-6 animate-in fade-in duration-500">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
                     <div>
-                        <h1 className="text-3xl font-black tracking-tighter text-white uppercase italic">Central de Leads</h1>
+                        <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase italic">Central de Leads</h1>
                         <p className="text-muted-foreground italic text-sm font-medium">SendaIA • Gestión de activos industriales y comerciales.</p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -41,12 +41,12 @@ export default async function ClientsPage() {
 
                 <Tabs defaultValue="pipeline" className="w-full">
                     <div className="flex items-center justify-between mb-4 bg-secondary/20 p-1 rounded-xl border border-border/50">
-                        <TabsList className="bg-transparent border-none">
-                            <TabsTrigger value="pipeline" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold text-xs uppercase italic tracking-widest px-6">
-                                <LayoutGrid className="h-3.5 w-3.5 mr-2" /> Pipeline Flow
+                        <TabsList className="bg-transparent border-none w-full">
+                            <TabsTrigger value="pipeline" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold text-xs uppercase italic tracking-widest px-3 md:px-6 flex-1">
+                                <LayoutGrid className="h-3.5 w-3.5 mr-1 md:mr-2 shrink-0" /> <span className="hidden sm:inline">Pipeline Flow</span><span className="sm:hidden">Pipeline</span>
                             </TabsTrigger>
-                            <TabsTrigger value="list" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold text-xs uppercase italic tracking-widest px-6">
-                                <List className="h-3.5 w-3.5 mr-2" /> Listado Maestro
+                            <TabsTrigger value="list" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold text-xs uppercase italic tracking-widest px-3 md:px-6 flex-1">
+                                <List className="h-3.5 w-3.5 mr-1 md:mr-2 shrink-0" /> <span className="hidden sm:inline">Listado Maestro</span><span className="sm:hidden">Lista</span>
                             </TabsTrigger>
                         </TabsList>
                     </div>

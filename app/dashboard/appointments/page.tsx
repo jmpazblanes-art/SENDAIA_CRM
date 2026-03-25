@@ -71,16 +71,16 @@ export default async function AppointmentsPage() {
         ).length
 
         return (
-            <div className="flex flex-col h-full space-y-6 animate-in fade-in duration-500">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col h-full space-y-4 md:space-y-6 animate-in fade-in duration-500">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
                     <div>
-                        <h1 className="text-3xl font-black tracking-tighter text-white uppercase italic">Agenda Inteligente</h1>
+                        <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase italic">Agenda Inteligente</h1>
                         <p className="text-muted-foreground italic text-sm font-medium">SendaIA • Gestión de activos temporales.</p>
                     </div>
                     <CreateAppointmentDialog clients={clients || []} />
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4">
+                <div className="grid gap-3 md:gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                     <Card className="bg-card border-border hover:border-primary/20 transition-all group overflow-hidden relative">
                         <div className="absolute -right-2 -bottom-2 opacity-5 group-hover:opacity-10 transition-opacity">
                             <CalendarIcon className="h-20 w-20" />
@@ -96,16 +96,16 @@ export default async function AppointmentsPage() {
                 </div>
 
                 <Tabs defaultValue="calendar" className="w-full">
-                    <div className="flex items-center justify-between mb-4 bg-secondary/20 p-1 rounded-xl border border-border/50">
-                        <TabsList className="bg-transparent border-none">
-                            <TabsTrigger value="calendar" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold text-xs uppercase italic tracking-widest px-6">
-                                <CalendarIcon className="h-3.5 w-3.5 mr-2" /> Vista Mural
+                    <div className="flex items-center justify-between mb-4 bg-secondary/20 p-1 rounded-xl border border-border/50 overflow-x-auto">
+                        <TabsList className="bg-transparent border-none w-full min-w-0">
+                            <TabsTrigger value="calendar" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold text-xs uppercase italic tracking-widest px-3 md:px-6 flex-1 min-w-0">
+                                <CalendarIcon className="h-3.5 w-3.5 mr-1 md:mr-2 shrink-0" /> <span className="hidden sm:inline">Vista Mural</span><span className="sm:hidden">Mural</span>
                             </TabsTrigger>
-                            <TabsTrigger value="list" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold text-xs uppercase italic tracking-widest px-6">
-                                <List className="h-3.5 w-3.5 mr-2" /> Registro Líquido
+                            <TabsTrigger value="list" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold text-xs uppercase italic tracking-widest px-3 md:px-6 flex-1 min-w-0">
+                                <List className="h-3.5 w-3.5 mr-1 md:mr-2 shrink-0" /> <span className="hidden sm:inline">Registro Líquido</span><span className="sm:hidden">Lista</span>
                             </TabsTrigger>
-                            <TabsTrigger value="booking" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold text-xs uppercase italic tracking-widest px-6">
-                                <Plus className="h-3.5 w-3.5 mr-2" /> Reservas Cal.com
+                            <TabsTrigger value="booking" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold text-xs uppercase italic tracking-widest px-3 md:px-6 flex-1 min-w-0">
+                                <Plus className="h-3.5 w-3.5 mr-1 md:mr-2 shrink-0" /> <span className="hidden sm:inline">Reservas Cal.com</span><span className="sm:hidden">Reservas</span>
                             </TabsTrigger>
                         </TabsList>
                     </div>

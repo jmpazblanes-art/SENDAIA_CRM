@@ -56,7 +56,7 @@ const columns = [
 
 export function ClientPipeline({ data }: ClientPipelineProps) {
     return (
-        <div className="flex gap-5 overflow-x-auto pb-4 min-h-[500px]">
+        <div className="flex gap-3 md:gap-5 overflow-x-auto pb-4 min-h-[400px] md:min-h-[500px] -mx-1 px-1 snap-x snap-mandatory md:snap-none">
             {columns.map(col => {
                 const colClients = data.filter(c => c.status === col.id)
                 const Icon = col.icon
@@ -64,7 +64,7 @@ export function ClientPipeline({ data }: ClientPipelineProps) {
                 return (
                     <div
                         key={col.id}
-                        className={`flex-1 min-w-[260px] max-w-[320px] flex flex-col rounded-2xl border ${col.border} ${col.bg} overflow-hidden ${col.headerGlow}`}
+                        className={`flex-1 min-w-[220px] md:min-w-[260px] max-w-[320px] flex flex-col rounded-2xl border ${col.border} ${col.bg} overflow-hidden ${col.headerGlow} snap-start`}
                     >
                         {/* Column Header */}
                         <div className="px-4 pt-4 pb-3">
