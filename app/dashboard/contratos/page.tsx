@@ -66,7 +66,7 @@ export default async function ContratosPage() {
             .reduce((acc, c) => acc + (c.valor_mensual || 0), 0)
 
         return (
-            <div className="flex flex-col h-full space-y-6">
+            <div className="flex flex-col h-full space-y-6 page-enter">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
                     <div>
                         <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase italic">Contratos</h1>

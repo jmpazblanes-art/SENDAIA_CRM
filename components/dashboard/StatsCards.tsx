@@ -111,12 +111,12 @@ export function StatsCards({
                         }}
                     />
 
-                    <div className="glass-card gold-top-border relative rounded-2xl p-0">
+                    <div className="glass-card gold-top-border glow-border card-lift relative rounded-2xl p-0" style={{ animation: "breathe 4s ease-in-out infinite" }}>
                         {/* Ambient glow orb */}
                         <div className="absolute top-0 right-0 w-32 h-32 -mr-16 -mt-16 bg-[#C9A24D]/[0.03] rounded-full blur-3xl group-hover:bg-[#C9A24D]/[0.08] transition-all duration-700" />
 
-                        {/* Large watermark icon */}
-                        <div className="absolute -bottom-6 -right-6 opacity-[0.04] group-hover:opacity-[0.08] transition-opacity duration-700 pointer-events-none select-none">
+                        {/* Large watermark icon — more visible */}
+                        <div className="absolute -bottom-6 -right-6 opacity-[0.08] group-hover:opacity-[0.14] transition-opacity duration-700 pointer-events-none select-none">
                             {watermarkIcons[kpi.iconBg]}
                         </div>
 
@@ -132,13 +132,9 @@ export function StatsCards({
                                 </div>
                             </div>
 
-                            {/* KPI number - LARGE */}
+                            {/* KPI number - LARGE with shimmer */}
                             <div
-                                className="text-3xl md:text-4xl font-black text-foreground tracking-tighter group-hover:text-[#D4AF37] transition-colors duration-500"
-                                style={{
-                                    textShadow: "0 0 20px rgba(201, 162, 77, 0.0)",
-                                    animation: "number-glow 4s ease-in-out infinite",
-                                }}
+                                className="text-3xl md:text-4xl font-black tracking-tighter shimmer-text"
                             >
                                 {kpi.value}
                             </div>
@@ -157,7 +153,7 @@ export function StatsCards({
                                     )}
                                     style={
                                         kpi.trend === "up"
-                                            ? { animation: "trend-pulse 2s ease-in-out 1" }
+                                            ? { animation: "trend-badge-pulse 2.5s ease-in-out infinite" }
                                             : undefined
                                     }
                                 >

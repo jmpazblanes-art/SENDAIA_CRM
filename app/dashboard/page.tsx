@@ -262,7 +262,7 @@ export default async function DashboardPage() {
 
         // ─── Render ────────────────────────────────────────────────────────
         return (
-            <div className="flex flex-col h-full space-y-4 md:space-y-8 animate-in fade-in duration-700">
+            <div className="flex flex-col h-full space-y-4 md:space-y-8 animate-in fade-in duration-700 page-enter stagger-in">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-4">
                     <div>

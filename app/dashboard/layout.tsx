@@ -31,59 +31,84 @@ export default function DashboardLayout({
 
             {/* Ambient Background Effects */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-                {/* Drifting orbs - increased opacity */}
+                {/* Drifting orbs - INCREASED opacity for visible ambient glow */}
                 <div
-                    className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/[0.08] blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2"
+                    className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/[0.12] blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2"
                     style={{ animation: "drift-1 25s ease-in-out infinite" }}
                 />
                 <div
-                    className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/[0.06] blur-[100px] rounded-full translate-y-1/2 -translate-x-1/2"
+                    className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/[0.08] blur-[100px] rounded-full translate-y-1/2 -translate-x-1/2"
                     style={{ animation: "drift-2 30s ease-in-out infinite" }}
                 />
                 <div
-                    className="absolute top-1/2 left-1/3 w-[300px] h-[300px] bg-[#C9A24D]/[0.04] blur-[80px] rounded-full"
+                    className="absolute top-1/2 left-1/3 w-[300px] h-[300px] bg-[#C9A24D]/[0.07] blur-[80px] rounded-full"
                     style={{ animation: "drift-1 35s ease-in-out infinite reverse" }}
                 />
                 {/* Extra orb for richness */}
                 <div
-                    className="absolute top-1/4 right-1/4 w-[250px] h-[250px] bg-[#D4AF37]/[0.03] blur-[100px] rounded-full"
+                    className="absolute top-1/4 right-1/4 w-[250px] h-[250px] bg-[#D4AF37]/[0.06] blur-[100px] rounded-full"
                     style={{ animation: "drift-2 40s ease-in-out infinite reverse" }}
                 />
+                {/* Additional ambient orb — bottom right */}
+                <div
+                    className="absolute bottom-1/4 right-1/3 w-[350px] h-[350px] bg-[#C9A24D]/[0.05] blur-[90px] rounded-full"
+                    style={{ animation: "drift-1 32s ease-in-out infinite 5s" }}
+                />
 
-                {/* Subtle animated grid pattern - more visible */}
+                {/* Animated grid pattern — MORE VISIBLE */}
                 <div
                     className="absolute inset-0"
                     style={{
                         backgroundImage: `
-                            linear-gradient(rgba(212,175,55,0.04) 1px, transparent 1px),
-                            linear-gradient(90deg, rgba(212,175,55,0.04) 1px, transparent 1px)
+                            linear-gradient(rgba(212,175,55,0.06) 1px, transparent 1px),
+                            linear-gradient(90deg, rgba(212,175,55,0.06) 1px, transparent 1px)
                         `,
                         backgroundSize: "60px 60px",
                         animation: "grid-fade 8s ease-in-out infinite",
                     }}
                 />
 
-                {/* Subtle scanline effect across entire dashboard */}
+                {/* Scanline effect — more visible */}
                 <div
                     className="absolute inset-0 overflow-hidden"
-                    style={{ opacity: 0.015 }}
+                    style={{ opacity: 0.03 }}
                 >
                     <div
                         className="absolute w-full h-[30%]"
                         style={{
-                            background: "linear-gradient(180deg, transparent, rgba(201, 162, 77, 0.3), transparent)",
+                            background: "linear-gradient(180deg, transparent, rgba(201, 162, 77, 0.4), transparent)",
                             animation: "scanline-dashboard 12s linear infinite",
                         }}
                     />
                 </div>
 
-                {/* Floating particles */}
-                <div className="dash-particle" style={{ top: "12%", left: "15%", animation: "float-particle-dash 18s ease-in-out infinite" }} />
-                <div className="dash-particle" style={{ top: "30%", right: "20%", animation: "float-particle-dash 22s ease-in-out infinite 2s" }} />
-                <div className="dash-particle" style={{ bottom: "25%", left: "40%", animation: "float-particle-dash 20s ease-in-out infinite 4s" }} />
-                <div className="dash-particle" style={{ top: "60%", right: "35%", animation: "float-particle-dash 24s ease-in-out infinite 6s" }} />
-                <div className="dash-particle" style={{ top: "15%", left: "60%", animation: "float-particle-dash 19s ease-in-out infinite 1s" }} />
-                <div className="dash-particle" style={{ bottom: "15%", right: "15%", animation: "float-particle-dash 21s ease-in-out infinite 3s" }} />
+                {/* Horizontal scan line — slow sweep every 15s */}
+                <div
+                    className="absolute inset-0 overflow-hidden"
+                >
+                    <div
+                        className="absolute w-full h-[2px] left-0"
+                        style={{
+                            background: "linear-gradient(90deg, transparent 0%, rgba(201, 162, 77, 0.15) 20%, rgba(212, 175, 55, 0.4) 50%, rgba(201, 162, 77, 0.15) 80%, transparent 100%)",
+                            boxShadow: "0 0 15px 3px rgba(201, 162, 77, 0.15)",
+                            animation: "scanline-sweep 15s linear infinite",
+                        }}
+                    />
+                </div>
+
+                {/* 12 Floating particles — VISIBLE gold dots with glow */}
+                <div className="dash-particle" style={{ top: "8%", left: "12%", width: "4px", height: "4px", animation: "float-particle-dash 18s ease-in-out infinite" }} />
+                <div className="dash-particle-lg" style={{ top: "25%", right: "18%", animation: "float-particle-dash 22s ease-in-out infinite 2s" }} />
+                <div className="dash-particle" style={{ bottom: "20%", left: "35%", width: "3px", height: "3px", animation: "float-particle-dash 20s ease-in-out infinite 4s" }} />
+                <div className="dash-particle-lg" style={{ top: "55%", right: "30%", animation: "float-particle-dash 24s ease-in-out infinite 6s" }} />
+                <div className="dash-particle-sm" style={{ top: "12%", left: "55%", animation: "float-particle-dash 19s ease-in-out infinite 1s" }} />
+                <div className="dash-particle" style={{ bottom: "12%", right: "12%", width: "5px", height: "5px", animation: "float-particle-dash 21s ease-in-out infinite 3s" }} />
+                <div className="dash-particle-lg" style={{ top: "40%", left: "8%", animation: "float-particle-dash 26s ease-in-out infinite 5s" }} />
+                <div className="dash-particle-sm" style={{ top: "70%", left: "65%", animation: "float-particle-dash 17s ease-in-out infinite 7s" }} />
+                <div className="dash-particle" style={{ top: "18%", right: "45%", width: "3px", height: "3px", animation: "float-particle-dash 23s ease-in-out infinite 8s" }} />
+                <div className="dash-particle-lg" style={{ bottom: "35%", right: "55%", animation: "float-particle-dash 28s ease-in-out infinite 9s" }} />
+                <div className="dash-particle-sm" style={{ top: "85%", left: "25%", animation: "float-particle-dash 15s ease-in-out infinite 10s" }} />
+                <div className="dash-particle" style={{ top: "45%", right: "8%", width: "4px", height: "4px", animation: "float-particle-dash 30s ease-in-out infinite 11s" }} />
             </div>
 
             {/* Sidebar */}
@@ -92,7 +117,7 @@ export default function DashboardLayout({
             <div className="flex flex-1 flex-col overflow-hidden relative z-10 w-full">
                 <Topbar />
                 <main className="flex-1 overflow-y-auto p-3 md:p-6 scroll-smooth relative z-0">
-                    <div className="max-w-[1600px] mx-auto w-full pb-20">
+                    <div className="max-w-[1600px] mx-auto w-full pb-20 page-enter">
                         {children}
                     </div>
                 </main>

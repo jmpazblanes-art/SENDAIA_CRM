@@ -53,7 +53,7 @@ export default async function PresupuestosPage() {
         const borradores = (presupuestos || []).filter(p => p.estado === 'borrador').length
 
         return (
-            <div className="flex flex-col h-full space-y-6">
+            <div className="flex flex-col h-full space-y-6 page-enter">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase italic">Presupuestos</h1>

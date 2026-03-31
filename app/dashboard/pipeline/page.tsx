@@ -18,7 +18,7 @@ export default async function PipelinePage() {
         if (error) console.error("Error fetching clients for pipeline:", error)
 
         return (
-            <div className="flex flex-col h-full space-y-4 md:space-y-6 animate-in fade-in duration-500">
+            <div className="flex flex-col h-full space-y-4 md:space-y-6 animate-in fade-in duration-500 page-enter">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase italic">
                         Pipeline

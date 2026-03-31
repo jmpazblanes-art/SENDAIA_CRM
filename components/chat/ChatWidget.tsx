@@ -105,7 +105,7 @@ export function ChatWidget() {
                     onClick={() => setIsOpen(true)}
                     className="fixed bottom-6 right-6 h-16 w-16 rounded-2xl shadow-[0_0_30px_rgba(201,162,77,0.3)] bg-primary hover:bg-primary/90 hover:scale-105 transition-all z-50 animate-bounce-slow flex items-center justify-center group"
                 >
-                    <Image src="/logo-sendaia-transparent.png" alt="Aria" width={36} height={36} className="transition-transform group-hover:scale-110" />
+                    <Image src="/logo-sendaia.png" alt="Aria" width={40} height={40} className="rounded-lg transition-transform group-hover:scale-110" />
                     <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-green-500 border-2 border-primary rounded-full animate-pulse" />
                 </button>
             )}
@@ -117,7 +117,7 @@ export function ChatWidget() {
                     <CardHeader className="flex flex-row items-center justify-between p-4 border-b border-border/50 bg-secondary/10">
                         <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center relative overflow-hidden group">
-                                <Image src="/logo-sendaia-transparent.png" alt="Aria" width={28} height={28} className="z-10" />
+                                <Image src="/logo-sendaia.png" alt="Aria" width={28} height={28} className="z-10 rounded" />
                                 <div className="absolute inset-0 bg-primary/5 animate-pulse" />
                             </div>
                             <div>

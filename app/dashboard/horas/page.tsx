@@ -95,7 +95,7 @@ export default async function HorasPage() {
             .sort((a, b) => b.horas - a.horas)
 
         return (
-            <div className="flex flex-col h-full space-y-6">
+            <div className="flex flex-col h-full space-y-6 page-enter">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase italic">Tracking de Horas</h1>
                     <p className="text-muted-foreground text-sm font-medium italic tracking-tight">Registro de tiempo, proyectos y facturación por cliente.</p>

@@ -40,7 +40,7 @@ export default async function OpsPage() {
     ).length
 
     return (
-      <div className="flex flex-col h-full space-y-4 md:space-y-6 animate-in fade-in duration-500">
+      <div className="flex flex-col h-full space-y-4 md:space-y-6 animate-in fade-in duration-500 page-enter">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase italic">
