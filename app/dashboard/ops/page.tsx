@@ -2,9 +2,10 @@ import { createAdminClient } from "@/utils/supabase/admin"
 import { StatusGrid } from "@/components/ops/StatusGrid"
 import { CostSummary } from "@/components/ops/CostSummary"
 import { AlertLog } from "@/components/ops/AlertLog"
+import { Changelog } from "@/components/ops/Changelog"
 import { AddProductDialog } from "@/components/ops/AddProductDialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Activity, DollarSign, Bell, AlertTriangle } from "lucide-react"
+import { Activity, DollarSign, Bell, GitCommit, AlertTriangle } from "lucide-react"
 
 export const dynamic = 'force-dynamic'
 
@@ -12,20 +13,27 @@ export default async function OpsPage() {
   try {
     const supabase = createAdminClient()
 
-    const [monitoringRes, alertasRes] = await Promise.all([
+    const [monitoringRes, alertasRes, changelogRes] = await Promise.all([
       supabase.from('ops_monitoring').select('*').order('producto', { ascending: true }),
       supabase
         .from('ops_alertas')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(30),
+      supabase
+        .from('ops_changelog')
+        .select('*')
+        .order('commit_date', { ascending: false })
+        .limit(50),
     ])
 
     if (monitoringRes.error) console.error("Error fetching ops_monitoring:", monitoringRes.error)
     if (alertasRes.error) console.error("Error fetching ops_alertas:", alertasRes.error)
+    if (changelogRes.error) console.error("Error fetching ops_changelog:", changelogRes.error)
 
     const productos = monitoringRes.data ?? []
     const alertas = alertasRes.data ?? []
+    const changelogs = changelogRes.data ?? []
 
     const alertCount = alertas.filter(
       (a) => a.estado === 'pendiente' || a.estado === 'en_analisis'
@@ -76,6 +84,14 @@ export default async function OpsPage() {
                   Alertas{alertCount > 0 && ` (${alertCount})`}
                 </span>
               </TabsTrigger>
+              <TabsTrigger
+                value="changelog"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-bold text-xs uppercase italic tracking-widest px-3 md:px-6 flex-1"
+              >
+                <GitCommit className="h-3.5 w-3.5 mr-1 md:mr-2 shrink-0" />
+                <span className="hidden sm:inline">Changelog</span>
+                <span className="sm:hidden">Changelog</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -89,6 +105,10 @@ export default async function OpsPage() {
 
           <TabsContent value="alertas" className="mt-0">
             <AlertLog alertas={alertas} />
+          </TabsContent>
+
+          <TabsContent value="changelog" className="mt-0">
+            <Changelog changelogs={changelogs} />
           </TabsContent>
         </Tabs>
       </div>

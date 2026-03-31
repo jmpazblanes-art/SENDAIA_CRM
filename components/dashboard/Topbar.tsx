@@ -3,7 +3,7 @@
 
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Bell, Search, User, Menu } from "lucide-react"
+import { Search, User, Menu } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,6 +19,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import Link from "next/link"
 import { logout } from "@/app/login/actions"
 import { Sidebar } from "./Sidebar"
+import { NotificationCenter } from "./NotificationCenter"
 
 export function Topbar() {
     const pathname = usePathname()
@@ -71,10 +72,7 @@ export function Topbar() {
                     />
                 </div>
 
-                <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-5 w-5 text-muted-foreground" />
-                    <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />
-                </Button>
+                <NotificationCenter />
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>

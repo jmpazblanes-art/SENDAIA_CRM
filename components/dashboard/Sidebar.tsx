@@ -7,14 +7,19 @@ import { cn } from "@/lib/utils"
 import {
     LayoutDashboard,
     Users,
+    Kanban,
     Briefcase,
     Calendar,
     FileText,
+    FileSignature,
     Phone,
     Settings,
     LogOut,
     Zap,
-    Activity
+    Activity,
+    ClipboardList,
+    Clock,
+    BookOpen
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { logout } from "@/app/login/actions"
@@ -22,12 +27,16 @@ import { logout } from "@/app/login/actions"
 const sidebarItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: Users, label: "Clientes", href: "/dashboard/clients" },
+    { icon: Kanban, label: "Pipeline", href: "/dashboard/pipeline" },
+    { icon: ClipboardList, label: "Presupuestos", href: "/dashboard/presupuestos" },
+    { icon: FileSignature, label: "Contratos", href: "/dashboard/contratos" },
     { icon: Briefcase, label: "Equipo", href: "/dashboard/team" },
     { icon: Calendar, label: "Citas", href: "/dashboard/appointments" },
     { icon: FileText, label: "Facturas", href: "/dashboard/invoices" },
+    { icon: Clock, label: "Horas", href: "/dashboard/horas" },
     { icon: Zap, label: "Automatizaciones", href: "/dashboard/automations" },
     { icon: Phone, label: "Agentes de Voz", href: "/dashboard/calls" },
-    { icon: FileText, label: "Librería Prompts", href: "/dashboard/prompts" },
+    { icon: BookOpen, label: "Librería Prompts", href: "/dashboard/prompts" },
     { icon: Activity, label: "Ops Center", href: "/dashboard/ops" },
 ]
 

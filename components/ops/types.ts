@@ -30,3 +30,14 @@ export interface OpsAlerta {
   created_at: string
   fecha_resolucion: string | null
 }
+
+export interface OpsChangelog {
+  id: string
+  producto: string
+  commit_sha: string | null
+  commit_message: string | null
+  commit_author: string | null
+  commit_url: string | null
+  commit_date: string | null
+  created_at: string
+}

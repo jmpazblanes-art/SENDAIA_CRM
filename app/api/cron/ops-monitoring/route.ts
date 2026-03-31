@@ -165,6 +165,34 @@ export async function GET(req: Request) {
         }
       }
 
+      // Fetch latest commits for changelog
+      const token = process.env.GITHUB_TOKEN
+      if (token && product.repo) {
+        try {
+          const commitsRes = await fetch(
+            `https://api.github.com/repos/${product.repo}/commits?per_page=3`,
+            { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' } }
+          )
+          if (commitsRes.ok) {
+            const commits = await commitsRes.json()
+            for (const commit of commits) {
+              // Upsert by commit_sha to avoid duplicates
+              // NOTE: ops_changelog table needs a UNIQUE constraint on commit_sha for this upsert to work
+              await supabase.from('ops_changelog').upsert({
+                producto: product.producto,
+                commit_sha: commit.sha,
+                commit_message: commit.commit.message.split('\n')[0], // first line only
+                commit_author: commit.commit.author.name,
+                commit_url: commit.html_url,
+                commit_date: commit.commit.author.date,
+              }, { onConflict: 'commit_sha' })
+            }
+          }
+        } catch (e) {
+          console.error(`[ops-cron] Commits fetch failed for ${product.producto}:`, e)
+        }
+      }
+
       results.push({ producto: product.producto, estado: ghResult.estado, test_summary: ghResult.test_summary, workflow_name: ghResult.workflow_name })
     }
 
