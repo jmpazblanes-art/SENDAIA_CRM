@@ -10,13 +10,45 @@ export default function DashboardLayout({
 }) {
     return (
         <div className="flex h-screen overflow-hidden bg-[#0A0C10] text-slate-200">
-            {/* Neural Link Status Indicator - FIXED TOP BAR */}
-            <div className="fixed top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent z-[100] border-b border-primary/10 shadow-[0_0_10px_rgba(201,162,77,0.2)]" />
+            {/* Gold gradient line at the very top of the page */}
+            <div
+                className="fixed top-0 left-0 w-full h-[1px] z-[100]"
+                style={{
+                    background:
+                        "linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.1) 15%, rgba(212,175,55,0.6) 35%, rgba(212,175,55,0.9) 50%, rgba(212,175,55,0.6) 65%, rgba(212,175,55,0.1) 85%, transparent 100%)",
+                    boxShadow:
+                        "0 0 8px rgba(212,175,55,0.3), 0 0 20px rgba(212,175,55,0.1)",
+                }}
+            />
 
-            {/* Ambient Background Effects */}
+            {/* Ambient Background Effects — drifting blurred circles */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2" />
-                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/5 blur-[100px] rounded-full translate-y-1/2 -translate-x-1/2" />
+                <div
+                    className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2"
+                    style={{ animation: "drift-1 25s ease-in-out infinite" }}
+                />
+                <div
+                    className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/5 blur-[100px] rounded-full translate-y-1/2 -translate-x-1/2"
+                    style={{ animation: "drift-2 30s ease-in-out infinite" }}
+                />
+                {/* Additional subtle gold orb */}
+                <div
+                    className="absolute top-1/2 left-1/3 w-[300px] h-[300px] bg-[#C9A24D]/[0.02] blur-[80px] rounded-full"
+                    style={{ animation: "drift-1 35s ease-in-out infinite reverse" }}
+                />
+
+                {/* Subtle animated grid pattern */}
+                <div
+                    className="absolute inset-0"
+                    style={{
+                        backgroundImage: `
+                            linear-gradient(rgba(212,175,55,0.03) 1px, transparent 1px),
+                            linear-gradient(90deg, rgba(212,175,55,0.03) 1px, transparent 1px)
+                        `,
+                        backgroundSize: "60px 60px",
+                        animation: "grid-fade 8s ease-in-out infinite",
+                    }}
+                />
             </div>
 
             {/* Sidebar can fail silently if hidden, but we want it robust */}

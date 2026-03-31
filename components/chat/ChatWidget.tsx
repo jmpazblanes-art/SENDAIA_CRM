@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { MessageSquare, Send, X, Bot, Zap, Loader2, Mic } from "lucide-react"
+import { Send, X, Loader2, Mic, Sparkles } from "lucide-react"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 
 type Message = {
@@ -19,7 +20,7 @@ export function ChatWidget() {
     const [input, setInput] = React.useState("")
     const [isTyping, setIsTyping] = React.useState(false)
     const [messages, setMessages] = React.useState<Message[]>([
-        { id: '1', role: 'assistant', content: '¡Hola! Soy SendaIA Brain. Estoy conectado a tus sistemas en tiempo real. ¿En qué puedo asistirte hoy?' }
+        { id: '1', role: 'assistant', content: '¡Hola! Soy Aria, tu asistente de IA de SendaIA. Tengo acceso a tu CRM, calendario y todos tus sistemas en tiempo real. Pregúntame lo que necesites: crear leads, agendar citas, consultar clientes o cualquier otra cosa.' }
     ])
 
     const scrollRef = React.useRef<HTMLDivElement>(null)
@@ -100,15 +101,13 @@ export function ChatWidget() {
     return (
         <>
             {!isOpen && (
-                <Button
+                <button
                     onClick={() => setIsOpen(true)}
-                    className="fixed bottom-6 right-6 h-16 w-16 rounded-2xl shadow-[0_0_30px_rgba(201,162,77,0.3)] bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 transition-all z-50 animate-bounce-slow"
+                    className="fixed bottom-6 right-6 h-16 w-16 rounded-2xl shadow-[0_0_30px_rgba(201,162,77,0.3)] bg-primary hover:bg-primary/90 hover:scale-105 transition-all z-50 animate-bounce-slow flex items-center justify-center group"
                 >
-                    <div className="relative">
-                        <MessageSquare className="h-7 w-7" />
-                        <span className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 border-2 border-primary rounded-full" />
-                    </div>
-                </Button>
+                    <Image src="/logo-sendaia-transparent.png" alt="Aria" width={36} height={36} className="transition-transform group-hover:scale-110" />
+                    <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-green-500 border-2 border-primary rounded-full animate-pulse" />
+                </button>
             )}
 
             {isOpen && (
@@ -118,14 +117,17 @@ export function ChatWidget() {
                     <CardHeader className="flex flex-row items-center justify-between p-4 border-b border-border/50 bg-secondary/10">
                         <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center relative overflow-hidden group">
-                                <Bot className="h-6 w-6 text-primary z-10" />
+                                <Image src="/logo-sendaia-transparent.png" alt="Aria" width={28} height={28} className="z-10" />
                                 <div className="absolute inset-0 bg-primary/5 animate-pulse" />
                             </div>
                             <div>
-                                <CardTitle className="text-sm font-black text-white uppercase tracking-tighter">SendaIA Brain</CardTitle>
-                                <div className="flex items-center gap-1.5 status">
+                                <CardTitle className="text-sm font-black text-white uppercase tracking-tighter flex items-center gap-1.5">
+                                    Aria
+                                    <Sparkles className="h-3 w-3 text-primary" />
+                                </CardTitle>
+                                <div className="flex items-center gap-1.5">
                                     <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Enlace Activo</span>
+                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Asistente IA de SendaIA</span>
                                 </div>
                             </div>
                         </div>
@@ -150,11 +152,11 @@ export function ChatWidget() {
                                         )}>
                                             {msg.content}
                                             {msg.role === 'assistant' && (
-                                                <Zap className="absolute -left-6 top-0 h-4 w-4 text-primary/30" />
+                                                <Sparkles className="absolute -left-6 top-0 h-4 w-4 text-primary/30" />
                                             )}
                                         </div>
                                         <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest px-1">
-                                            {msg.role === 'user' ? 'Tú' : 'Brain'} • {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {msg.role === 'user' ? 'Tú' : 'Aria'} • {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
                                 ))}

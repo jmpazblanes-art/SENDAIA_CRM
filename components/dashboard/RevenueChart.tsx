@@ -18,7 +18,12 @@ export function RevenueChart({ data }: RevenueChartProps) {
     const hasData = data.some((d) => d.total > 0)
 
     return (
-        <div className="w-full h-[300px] md:h-[350px] pt-4">
+        <div
+            className="w-full h-[300px] md:h-[350px] pt-4"
+            style={{
+                animation: "chart-fade-in 0.8s ease-out both",
+            }}
+        >
             {hasData ? (
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
@@ -26,19 +31,32 @@ export function RevenueChart({ data }: RevenueChartProps) {
                         margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                     >
                         <defs>
+                            {/* Enhanced multi-stop gold gradient */}
                             <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#C9A24D" stopOpacity={0.4} />
-                                <stop offset="95%" stopColor="#C9A24D" stopOpacity={0} />
+                                <stop offset="0%" stopColor="#D4AF37" stopOpacity={0.45} />
+                                <stop offset="25%" stopColor="#C9A24D" stopOpacity={0.3} />
+                                <stop offset="60%" stopColor="#C9A24D" stopOpacity={0.1} />
+                                <stop offset="100%" stopColor="#C9A24D" stopOpacity={0} />
                             </linearGradient>
+                            {/* Glow filter for the line */}
+                            <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="3" result="blur" />
+                                <feFlood floodColor="#C9A24D" floodOpacity="0.3" result="color" />
+                                <feComposite in="color" in2="blur" operator="in" result="shadow" />
+                                <feMerge>
+                                    <feMergeNode in="shadow" />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
                         </defs>
                         <CartesianGrid
                             strokeDasharray="3 3"
-                            stroke="#ffffff08"
+                            stroke="rgba(255,255,255,0.03)"
                             vertical={false}
                         />
                         <XAxis
                             dataKey="name"
-                            stroke="#888888"
+                            stroke="#555555"
                             fontSize={10}
                             tickLine={false}
                             axisLine={false}
@@ -46,7 +64,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
                             fontWeight="bold"
                         />
                         <YAxis
-                            stroke="#888888"
+                            stroke="#555555"
                             fontSize={10}
                             tickLine={false}
                             axisLine={false}
@@ -60,21 +78,27 @@ export function RevenueChart({ data }: RevenueChartProps) {
                         />
                         <Tooltip
                             contentStyle={{
-                                backgroundColor: "rgba(15, 17, 21, 0.95)",
-                                border: "1px solid rgba(201, 162, 77, 0.3)",
+                                backgroundColor: "rgba(10, 12, 16, 0.96)",
+                                border: "1px solid rgba(212, 175, 55, 0.25)",
                                 borderRadius: "12px",
                                 color: "#FFFFFF",
-                                backdropFilter: "blur(10px)",
-                                boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-                                padding: "12px",
+                                backdropFilter: "blur(16px)",
+                                boxShadow:
+                                    "0 12px 40px rgba(0,0,0,0.6), 0 0 20px rgba(201,162,77,0.08), inset 0 1px 0 rgba(255,255,255,0.05)",
+                                padding: "14px 16px",
                             }}
-                            itemStyle={{ color: "#C9A24D", fontWeight: "bold" }}
+                            itemStyle={{
+                                color: "#D4AF37",
+                                fontWeight: "bold",
+                                fontSize: "14px",
+                            }}
                             labelStyle={{
                                 color: "#888888",
-                                marginBottom: "4px",
+                                marginBottom: "6px",
                                 fontSize: "10px",
-                                textTransform: "uppercase",
+                                textTransform: "uppercase" as const,
                                 fontWeight: "bold",
+                                letterSpacing: "0.1em",
                             }}
                             formatter={(value: number | undefined) => {
                                 const v = value ?? 0
@@ -88,23 +112,35 @@ export function RevenueChart({ data }: RevenueChartProps) {
                                 ]
                             }}
                             cursor={{
-                                stroke: "rgba(201, 162, 77, 0.2)",
-                                strokeWidth: 2,
+                                stroke: "rgba(212, 175, 55, 0.15)",
+                                strokeWidth: 1,
+                                strokeDasharray: "4 4",
                             }}
                         />
                         <Area
                             type="monotone"
                             dataKey="total"
-                            stroke="#C9A24D"
-                            strokeWidth={3}
+                            stroke="#D4AF37"
+                            strokeWidth={2.5}
                             fillOpacity={1}
                             fill="url(#colorRevenue)"
-                            animationDuration={1500}
+                            animationDuration={1800}
+                            animationEasing="ease-out"
+                            filter="url(#goldGlow)"
                             activeDot={{
                                 r: 6,
-                                fill: "#C9A24D",
-                                stroke: "#0F1115",
-                                strokeWidth: 2,
+                                fill: "#D4AF37",
+                                stroke: "#0A0C10",
+                                strokeWidth: 3,
+                                style: {
+                                    filter: "drop-shadow(0 0 6px rgba(212,175,55,0.5))",
+                                },
+                            }}
+                            dot={{
+                                r: 2,
+                                fill: "#D4AF37",
+                                stroke: "none",
+                                opacity: 0.5,
                             }}
                         />
                     </AreaChart>
