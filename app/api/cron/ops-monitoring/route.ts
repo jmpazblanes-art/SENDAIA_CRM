@@ -7,14 +7,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const PRODUCTS = [
-  { producto: 'PeritApp', repo: 'jmpazblanes-art/peritapp' },
-  { producto: 'AirConEtc', repo: 'jmpazblanes-art/aircontec-erp' },
-  { producto: 'FisConLab', repo: 'jmpazblanes-art/fisconlab-saas' },
-  { producto: 'CRM', repo: 'jmpazblanes-art/SENDAIA_CRM' },
-]
-
 interface GitHubRun {
+  id: number
   conclusion: string | null
   status: string
   html_url: string
@@ -26,10 +20,12 @@ async function checkGitHubActions(repo: string): Promise<{
   github_actions_status: string | null
   github_actions_url: string | null
   ultimo_error: string | null
+  test_summary: string | null
+  workflow_name: string | null
 }> {
   const token = process.env.GITHUB_TOKEN
   if (!token) {
-    return { estado: 'warning', github_actions_status: 'no_token', github_actions_url: null, ultimo_error: 'GITHUB_TOKEN no configurado' }
+    return { estado: 'warning', github_actions_status: 'no_token', github_actions_url: null, ultimo_error: 'GITHUB_TOKEN no configurado', test_summary: null, workflow_name: null }
   }
 
   try {
@@ -44,24 +40,38 @@ async function checkGitHubActions(repo: string): Promise<{
     )
 
     if (!res.ok) {
-      return { estado: 'warning', github_actions_status: `api_error_${res.status}`, github_actions_url: null, ultimo_error: `GitHub API error: ${res.status}` }
+      return { estado: 'warning', github_actions_status: `api_error_${res.status}`, github_actions_url: null, ultimo_error: `GitHub API error: ${res.status}`, test_summary: null, workflow_name: null }
     }
 
     const data = await res.json()
     const runs = data.workflow_runs as GitHubRun[] | undefined
 
     if (!runs || runs.length === 0) {
-      return { estado: 'ok', github_actions_status: 'no_runs', github_actions_url: null, ultimo_error: null }
+      return { estado: 'ok', github_actions_status: 'no_runs', github_actions_url: null, ultimo_error: null, test_summary: null, workflow_name: null }
     }
 
     const latest = runs[0]
 
     if (latest.status === 'in_progress' || latest.status === 'queued') {
-      return { estado: 'ok', github_actions_status: latest.status, github_actions_url: latest.html_url, ultimo_error: null }
+      return { estado: 'ok', github_actions_status: latest.status, github_actions_url: latest.html_url, ultimo_error: null, test_summary: null, workflow_name: latest.name }
     }
 
+    // Try to get job summary for completed runs
+    let test_summary: string | null = null
+    try {
+      const jobsRes = await fetch(
+        `https://api.github.com/repos/${repo}/actions/runs/${latest.id}/jobs`,
+        { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' } }
+      )
+      if (jobsRes.ok) {
+        const jobsData = await jobsRes.json()
+        const jobs = jobsData.jobs || []
+        test_summary = jobs.map((j: any) => `${j.name}: ${j.conclusion}`).join(', ')
+      }
+    } catch {}
+
     if (latest.conclusion === 'success') {
-      return { estado: 'ok', github_actions_status: 'success', github_actions_url: latest.html_url, ultimo_error: null }
+      return { estado: 'ok', github_actions_status: 'success', github_actions_url: latest.html_url, ultimo_error: null, test_summary, workflow_name: latest.name }
     }
 
     if (latest.conclusion === 'failure') {
@@ -70,13 +80,15 @@ async function checkGitHubActions(repo: string): Promise<{
         github_actions_status: 'failure',
         github_actions_url: latest.html_url,
         ultimo_error: `GitHub Actions failed: ${latest.name}`,
+        test_summary,
+        workflow_name: latest.name,
       }
     }
 
     // cancelled, skipped, etc
-    return { estado: 'warning', github_actions_status: latest.conclusion || 'unknown', github_actions_url: latest.html_url, ultimo_error: null }
+    return { estado: 'warning', github_actions_status: latest.conclusion || 'unknown', github_actions_url: latest.html_url, ultimo_error: null, test_summary, workflow_name: latest.name }
   } catch (err) {
-    return { estado: 'warning', github_actions_status: 'fetch_error', github_actions_url: null, ultimo_error: `Error checking GitHub: ${err}` }
+    return { estado: 'warning', github_actions_status: 'fetch_error', github_actions_url: null, ultimo_error: `Error checking GitHub: ${err}`, test_summary: null, workflow_name: null }
   }
 }
 
@@ -89,9 +101,18 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const results: Array<{ producto: string; estado: string; error?: string }> = []
+    // Fetch products dynamically from ops_monitoring
+    const { data: products, error: fetchError } = await supabase
+      .from('ops_monitoring')
+      .select('producto, repo')
 
-    for (const product of PRODUCTS) {
+    if (fetchError || !products || products.length === 0) {
+      return NextResponse.json({ ok: true, summary: 'No products to monitor', results: [] })
+    }
+
+    const results: Array<{ producto: string; estado: string; test_summary?: string | null; workflow_name?: string | null; error?: string }> = []
+
+    for (const product of products) {
       const ghResult = await checkGitHubActions(product.repo)
 
       // Get current error to detect new ones
@@ -115,6 +136,7 @@ export async function GET(req: Request) {
             github_actions_status: ghResult.github_actions_status,
             github_actions_url: ghResult.github_actions_url,
             ultimo_error: ghResult.ultimo_error,
+            test_summary: ghResult.test_summary,
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'producto' }
@@ -143,7 +165,7 @@ export async function GET(req: Request) {
         }
       }
 
-      results.push({ producto: product.producto, estado: ghResult.estado })
+      results.push({ producto: product.producto, estado: ghResult.estado, test_summary: ghResult.test_summary, workflow_name: ghResult.workflow_name })
     }
 
     const errors = results.filter((r) => r.estado === 'error').length

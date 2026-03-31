@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { OpsMonitoring } from "./types"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -9,7 +10,9 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip"
-import { ExternalLink, CircleDot, GitBranch, AlertTriangle } from "lucide-react"
+import { RemoveProductButton } from "./RemoveProductButton"
+import { ProductDetailDialog } from "./ProductDetailDialog"
+import { CircleDot, GitBranch, AlertTriangle, FlaskConical } from "lucide-react"
 
 function relativeTime(dateStr: string): string {
   const now = Date.now()
@@ -31,6 +34,11 @@ const estadoColors: Record<string, string> = {
 }
 
 export function StatusGrid({ productos }: { productos: OpsMonitoring[] }) {
+  const [selectedProduct, setSelectedProduct] = useState<OpsMonitoring | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
+
   if (!productos || productos.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -44,10 +52,17 @@ export function StatusGrid({ productos }: { productos: OpsMonitoring[] }) {
     <TooltipProvider delayDuration={200}>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {productos.map((p) => (
-          <Card key={p.id} className="border-border/50 bg-card/50 backdrop-blur-sm">
+          <Card
+            key={p.id}
+            className="border-border/50 bg-card/50 backdrop-blur-sm cursor-pointer hover:border-[#C9A24D]/50 hover:bg-card/70 transition-all"
+            onClick={() => setSelectedProduct(p)}
+          >
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-white truncate">{p.producto}</h3>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-lg font-bold text-white truncate">{p.producto}</h3>
+                  <RemoveProductButton productId={p.id} producto={p.producto} />
+                </div>
                 <Badge
                   variant="outline"
                   className={`text-xs uppercase font-bold ${estadoColors[p.estado] ?? ""}`}
@@ -70,23 +85,28 @@ export function StatusGrid({ productos }: { productos: OpsMonitoring[] }) {
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <GitBranch className="h-3.5 w-3.5" />
                   <span className="truncate">CI: {p.github_actions_status}</span>
-                  {p.github_actions_url && (
-                    <a
-                      href={p.github_actions_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-auto text-[#C9A24D] hover:underline"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
                 </div>
               )}
 
+              {/* Test summary */}
+              {p.test_summary && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-start gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 rounded-md px-2 py-1.5 cursor-default">
+                      <FlaskConical className="h-3 w-3 mt-0.5 shrink-0" />
+                      <span className="truncate">{p.test_summary}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-sm text-xs whitespace-pre-wrap">
+                    {p.test_summary.split(', ').join('\n')}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
               {/* Ultima comprobacion */}
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground" suppressHydrationWarning>
                 Ultima comprobacion:{" "}
-                <span className="text-white/70">{relativeTime(p.updated_at)}</span>
+                <span className="text-white/70">{mounted ? relativeTime(p.updated_at) : "..."}</span>
               </p>
 
               {/* Ultimo error */}
@@ -104,22 +124,25 @@ export function StatusGrid({ productos }: { productos: OpsMonitoring[] }) {
                 </Tooltip>
               )}
 
-              {/* Repo link */}
+              {/* Repo */}
               {p.repo && (
-                <a
-                  href={`https://github.com/${p.repo}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-[#C9A24D] hover:underline"
-                >
+                <div className="inline-flex items-center gap-1 text-xs text-[#C9A24D]">
                   <GitBranch className="h-3 w-3" />
                   {p.repo}
-                </a>
+                </div>
               )}
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {selectedProduct && (
+        <ProductDetailDialog
+          producto={selectedProduct}
+          open={!!selectedProduct}
+          onOpenChange={(open) => { if (!open) setSelectedProduct(null) }}
+        />
+      )}
     </TooltipProvider>
   )
 }

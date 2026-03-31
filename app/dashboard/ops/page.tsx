@@ -2,6 +2,7 @@ import { createAdminClient } from "@/utils/supabase/admin"
 import { StatusGrid } from "@/components/ops/StatusGrid"
 import { CostSummary } from "@/components/ops/CostSummary"
 import { AlertLog } from "@/components/ops/AlertLog"
+import { AddProductDialog } from "@/components/ops/AddProductDialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Activity, DollarSign, Bell, AlertTriangle } from "lucide-react"
 
@@ -32,13 +33,16 @@ export default async function OpsPage() {
 
     return (
       <div className="flex flex-col h-full space-y-4 md:space-y-6 animate-in fade-in duration-500">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase italic">
-            Ops Center
-          </h1>
-          <p className="text-muted-foreground italic text-sm font-medium">
-            SendaIA &bull; Monitorizacion de productos SendaIA
-          </p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase italic">
+              Ops Center
+            </h1>
+            <p className="text-muted-foreground italic text-sm font-medium">
+              SendaIA &bull; Monitorizacion de productos SendaIA
+            </p>
+          </div>
+          <AddProductDialog />
         </div>
 
         <Tabs defaultValue="estado" className="w-full">

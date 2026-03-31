@@ -11,6 +11,7 @@ export interface OpsMonitoring {
   coste_anthropic_mes: number
   coste_openai_mes: number
   coste_supabase_mes: number
+  test_summary: string | null
   created_at: string
   updated_at: string
 }
