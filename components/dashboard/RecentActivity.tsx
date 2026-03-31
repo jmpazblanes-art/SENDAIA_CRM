@@ -1,7 +1,5 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { UserPlus, CalendarCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -20,56 +18,71 @@ interface RecentActivityProps {
 
 export function RecentActivity({ activities }: RecentActivityProps) {
     return (
-        <Card className="bg-card border-border shadow-xl overflow-hidden">
-            <CardHeader className="bg-secondary/10 pb-4 border-b border-border/50">
-                <CardTitle className="text-md font-bold text-foreground flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#C9A24D] animate-pulse" />
-                        Actividad Reciente
+        <div className="glass-card gold-top-border rounded-2xl group">
+            {/* Header */}
+            <div className="px-5 pt-5 pb-3 border-b border-white/[0.04]">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                        <span className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#C9A24D] opacity-40" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#C9A24D]" />
+                        </span>
+                        <h3 className="text-[11px] uppercase font-black tracking-[0.2em] text-muted-foreground/90">
+                            Actividad Reciente
+                        </h3>
+                    </div>
+                    <span className="text-[9px] uppercase font-bold tracking-[0.2em] text-[#C9A24D]/60 border border-[#C9A24D]/20 px-2.5 py-1 rounded-full">
+                        En Vivo
                     </span>
-                    <Badge
-                        variant="outline"
-                        className="text-[9px] border-[#C9A24D]/30 text-[#C9A24D]"
-                    >
-                        EN VIVO
-                    </Badge>
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
+                </div>
+            </div>
+
+            {/* Content */}
+            <div className="px-3 pt-2 pb-3">
                 {activities.length > 0 ? (
-                    <div className="space-y-1">
-                        {activities.map((item) => (
+                    <div className="divide-y divide-white/[0.03]">
+                        {activities.map((item, idx) => (
                             <div
                                 key={`${item.type}-${item.id}`}
-                                className="flex items-start gap-4 p-3 rounded-lg hover:bg-secondary/20 transition-colors border border-transparent hover:border-border/50"
+                                className="activity-item flex items-start gap-3 px-3 py-3 rounded-lg transition-all duration-400 cursor-default"
+                                style={{
+                                    animation: `chart-fade-in 0.4s ease-out ${idx * 60}ms both`,
+                                }}
                             >
+                                {/* Icon */}
                                 <div
                                     className={cn(
-                                        "mt-0.5 p-2 rounded-lg border",
+                                        "mt-0.5 p-2 rounded-xl border transition-all duration-300",
                                         item.type === "client"
-                                            ? "bg-blue-500/10 border-blue-500/20"
-                                            : "bg-[#C9A24D]/10 border-[#C9A24D]/20"
+                                            ? "bg-[#C9A24D]/[0.06] border-[#C9A24D]/15"
+                                            : "bg-[#C9A24D]/[0.06] border-[#C9A24D]/15"
                                     )}
                                 >
                                     {item.type === "client" ? (
-                                        <UserPlus className="h-4 w-4 text-blue-500" />
+                                        <UserPlus className="h-4 w-4 text-[#C9A24D]/70" />
                                     ) : (
-                                        <CalendarCheck className="h-4 w-4 text-[#C9A24D]" />
+                                        <CalendarCheck className="h-4 w-4 text-[#C9A24D]/70" />
                                     )}
                                 </div>
+
+                                {/* Text content */}
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-foreground leading-tight truncate">
+                                    <p className="text-sm font-bold text-foreground/90 leading-tight truncate">
                                         {item.title}
                                     </p>
-                                    <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                                    <p className="text-[11px] text-muted-foreground/50 mt-0.5 truncate">
                                         {item.subtitle}
                                     </p>
                                 </div>
+
+                                {/* Timestamp */}
                                 <div className="text-right shrink-0">
-                                    <p className="text-[11px] font-mono font-bold text-muted-foreground">
+                                    <p
+                                        className="text-[11px] font-mono font-bold text-[#C9A24D]/40"
+                                    >
                                         {item.time}
                                     </p>
-                                    <p className="text-[10px] text-muted-foreground/60">
+                                    <p className="text-[10px] font-mono text-muted-foreground/30 mt-0.5">
                                         {item.date}
                                     </p>
                                 </div>
@@ -77,11 +90,11 @@ export function RecentActivity({ activities }: RecentActivityProps) {
                         ))}
                     </div>
                 ) : (
-                    <div className="py-10 text-center text-muted-foreground italic text-xs">
+                    <div className="py-10 text-center text-muted-foreground/40 italic text-xs tracking-wider">
                         No hay actividad reciente registrada.
                     </div>
                 )}
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     )
 }

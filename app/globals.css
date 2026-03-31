@@ -197,6 +197,124 @@
   75% { transform: translate(-10px, -15px); }
 }
 
+/* ===== DASHBOARD PREMIUM EFFECTS ===== */
+
+@keyframes shimmer-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes bar-pulse-dot {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.5); }
+}
+
+@keyframes scanline-dashboard {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes sidebar-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes float-particle-dash {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.15; }
+  25% { transform: translate(20px, -30px) scale(1.1); opacity: 0.3; }
+  50% { transform: translate(-15px, -60px) scale(0.9); opacity: 0.2; }
+  75% { transform: translate(30px, -40px) scale(1.05); opacity: 0.25; }
+}
+
+/* Dashboard glass card base */
+.glass-card {
+  background: rgba(20, 20, 20, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(201, 162, 77, 0.15);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  border-color: rgba(201, 162, 77, 0.4);
+  box-shadow: 0 0 30px rgba(201, 162, 77, 0.08), 0 0 60px rgba(201, 162, 77, 0.04);
+}
+
+/* Shimmer sweep on hover */
+.glass-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(201, 162, 77, 0.06), transparent);
+  transform: translateX(-100%);
+  transition: none;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.glass-card:hover::after {
+  animation: shimmer-slide 0.8s ease-out forwards;
+}
+
+/* Gold metallic top border for cards */
+.gold-top-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, rgba(201, 162, 77, 0.3) 20%, rgba(212, 175, 55, 0.8) 50%, rgba(201, 162, 77, 0.3) 80%, transparent 100%);
+  z-index: 2;
+}
+
+/* Pipeline bar metallic gradient */
+.bar-metallic {
+  background: linear-gradient(90deg, rgba(201, 162, 77, 0.6), rgba(212, 175, 55, 0.9), rgba(232, 200, 74, 0.7), rgba(212, 175, 55, 0.9));
+  background-size: 200% 100%;
+  animation: gradient-shift 3s ease infinite;
+  border-radius: 9999px;
+}
+
+/* Activity item hover */
+.activity-item {
+  position: relative;
+  border-left: 2px solid transparent;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.activity-item:hover {
+  background: rgba(201, 162, 77, 0.04);
+  border-left-color: rgba(201, 162, 77, 0.6);
+}
+
+/* Vignette effect */
+.vignette::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.4) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Dashboard floating particles */
+.dash-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: rgba(201, 162, 77, 0.3);
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow: 0 0 6px rgba(201, 162, 77, 0.2);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

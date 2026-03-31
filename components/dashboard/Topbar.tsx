@@ -33,16 +33,24 @@ export function Topbar() {
     })
 
     return (
-        <header className="flex h-16 items-center justify-between border-b border-border bg-background px-4 md:px-6">
+        <header className="relative flex h-16 items-center justify-between border-b border-border bg-background/80 backdrop-blur-xl px-4 md:px-6">
+            {/* Gold gradient line at bottom of topbar */}
+            <div
+                className="absolute bottom-0 left-0 right-0 h-[1px]"
+                style={{
+                    background: "linear-gradient(90deg, transparent 0%, rgba(201,162,77,0.15) 20%, rgba(212,175,55,0.4) 50%, rgba(201,162,77,0.15) 80%, transparent 100%)",
+                }}
+            />
+
             <div className="flex items-center gap-4">
                 <Sheet>
                     <SheetTrigger asChild>
-                        <Button variant="ghost" size="icon" className="lg:hidden">
+                        <Button variant="ghost" size="icon" className="lg:hidden hover:bg-[#C9A24D]/[0.06] transition-colors duration-300">
                             <Menu className="h-5 w-5" />
                         </Button>
                     </SheetTrigger>
                     <SheetContent side="left" className="p-0 w-64 bg-sidebar border-border">
-                        <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
+                        <SheetTitle className="sr-only">Menu de Navegacion</SheetTitle>
                         <Sidebar className="w-full border-none" />
                     </SheetContent>
                 </Sheet>
@@ -50,11 +58,15 @@ export function Topbar() {
                 <div className="flex items-center text-sm text-muted-foreground overflow-hidden">
                     {breadcrumbs.map((crumb, i) => (
                         <span key={crumb.href} className="flex items-center whitespace-nowrap">
-                            {i > 0 && <span className="mx-2">/</span>}
+                            {i > 0 && <span className="mx-2 text-muted-foreground/30">/</span>}
                             <span className={cn(
-                                "truncate max-w-[100px] md:max-w-none",
-                                crumb.isLast ? "text-foreground font-medium" : ""
-                            )}>
+                                "truncate max-w-[100px] md:max-w-none transition-colors duration-300",
+                                crumb.isLast
+                                    ? "text-[#D4AF37] font-semibold"
+                                    : "text-muted-foreground/60"
+                            )}
+                            style={crumb.isLast ? { textShadow: "0 0 12px rgba(212, 175, 55, 0.2)" } : undefined}
+                            >
                                 {crumb.label}
                             </span>
                         </span>
@@ -64,11 +76,14 @@ export function Topbar() {
 
             <div className="flex items-center gap-4">
                 <div className="relative w-64 hidden md:flex">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground/50" />
                     <Input
                         type="search"
                         placeholder="Buscar... (Cmd+K)"
-                        className="w-full bg-secondary pl-9 md:w-[300px] lg:w-[300px] border-none focus-visible:ring-1 focus-visible:ring-primary"
+                        className="w-full pl-9 md:w-[300px] lg:w-[300px] border-[#C9A24D]/10 bg-white/[0.03] text-sm transition-all duration-300 focus-visible:ring-1 focus-visible:ring-[#C9A24D]/50 focus-visible:border-[#C9A24D]/30 focus-visible:bg-white/[0.05] placeholder:text-muted-foreground/30"
+                        style={{
+                            borderRadius: "10px",
+                        }}
                     />
                 </div>
 
@@ -76,14 +91,14 @@ export function Topbar() {
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                            <Avatar className="h-8 w-8 border border-border">
+                        <Button variant="ghost" className="relative h-8 w-8 rounded-full hover:bg-[#C9A24D]/[0.06] transition-colors duration-300">
+                            <Avatar className="h-8 w-8 border border-[#C9A24D]/20 hover:border-[#C9A24D]/40 transition-colors duration-300">
                                 <AvatarImage src="/avatars/01.png" alt="@shadcn" />
-                                <AvatarFallback>P</AvatarFallback>
+                                <AvatarFallback className="bg-[#C9A24D]/10 text-[#C9A24D] text-xs font-bold">P</AvatarFallback>
                             </Avatar>
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuContent className="w-56 bg-[#1A1A1A]/95 backdrop-blur-xl border-[#C9A24D]/10" align="end" forceMount>
                         <DropdownMenuLabel className="font-normal">
                             <div className="flex flex-col space-y-1">
                                 <p className="text-sm font-medium leading-none">Pachi</p>
@@ -92,15 +107,15 @@ export function Topbar() {
                                 </p>
                             </div>
                         </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
+                        <DropdownMenuSeparator className="bg-[#C9A24D]/10" />
                         <Link href="/dashboard/settings">
-                            <DropdownMenuItem className="cursor-pointer">Configuración</DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer hover:bg-[#C9A24D]/[0.06] focus:bg-[#C9A24D]/[0.06]">Configuracion</DropdownMenuItem>
                         </Link>
-                        <DropdownMenuSeparator />
+                        <DropdownMenuSeparator className="bg-[#C9A24D]/10" />
                         <form action={logout}>
                             <button type="submit" className="w-full">
-                                <DropdownMenuItem className="text-destructive cursor-pointer">
-                                    Cerrar Sesión
+                                <DropdownMenuItem className="text-destructive cursor-pointer hover:bg-red-500/[0.06] focus:bg-red-500/[0.06]">
+                                    Cerrar Sesion
                                 </DropdownMenuItem>
                             </button>
                         </form>
