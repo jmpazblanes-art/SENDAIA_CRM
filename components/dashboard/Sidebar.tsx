@@ -13,7 +13,8 @@ import {
     Phone,
     Settings,
     LogOut,
-    Zap
+    Zap,
+    Activity
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { logout } from "@/app/login/actions"
@@ -27,6 +28,7 @@ const sidebarItems = [
     { icon: Zap, label: "Automatizaciones", href: "/dashboard/automations" },
     { icon: Phone, label: "Agentes de Voz", href: "/dashboard/calls" },
     { icon: FileText, label: "Librería Prompts", href: "/dashboard/prompts" },
+    { icon: Activity, label: "Ops Center", href: "/dashboard/ops" },
 ]
 
 interface SidebarProps {
