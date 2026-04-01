@@ -40,17 +40,25 @@ export async function updateSession(request: NextRequest) {
 
     const { data } = await supabase.auth.getUser()
     const user = data?.user
+    const pathname = request.nextUrl.pathname
 
-    // --- AUTH LOCKDOWN LOGIC ---
-    // En producción, descomenta las siguientes líneas para obligar al login:
-    /*
-    if (!user && !request.nextUrl.pathname.startsWith('/login')) {
+    // --- AUTH LOCKDOWN ---
+    // 1. Si no está logado y no está en /login → redirigir al login
+    if (!user && !pathname.startsWith('/login')) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
     }
-    */
-    // ----------------------------
+
+    // 2. Si está logado pero su email NO es el autorizado → cerrar sesión y redirigir
+    const ALLOWED_EMAIL = 'info@sendaia.es'
+    if (user && user.email !== ALLOWED_EMAIL) {
+        await supabase.auth.signOut()
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        return NextResponse.redirect(url)
+    }
+    // ---------------------
 
     return response
 }
