@@ -19,6 +19,7 @@ export function ChatWidget() {
     const [isOpen, setIsOpen] = React.useState(false)
     const [input, setInput] = React.useState("")
     const [isTyping, setIsTyping] = React.useState(false)
+    const [showLabel, setShowLabel] = React.useState(true)
     const [messages, setMessages] = React.useState<Message[]>([
         { id: '1', role: 'assistant', content: '¡Hola! Soy Aria, tu asistente de IA de SendaIA. Tengo acceso a tu CRM, calendario y todos tus sistemas en tiempo real. Pregúntame lo que necesites: crear leads, agendar citas, consultar clientes o cualquier otra cosa.' }
     ])
@@ -62,6 +63,11 @@ export function ChatWidget() {
     }
 
     React.useEffect(() => {
+        const timer = setTimeout(() => setShowLabel(false), 6000)
+        return () => clearTimeout(timer)
+    }, [])
+
+    React.useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTo({
                 top: scrollRef.current.scrollHeight,
@@ -101,13 +107,34 @@ export function ChatWidget() {
     return (
         <>
             {!isOpen && (
-                <button
-                    onClick={() => setIsOpen(true)}
-                    className="fixed bottom-6 right-6 h-16 w-16 rounded-2xl shadow-[0_0_30px_rgba(201,162,77,0.3)] bg-primary hover:bg-primary/90 hover:scale-105 transition-all z-50 animate-bounce-slow flex items-center justify-center group"
-                >
-                    <Image src="/logo-sendaia.png" alt="Aria" width={40} height={40} className="rounded-lg transition-transform group-hover:scale-110" />
-                    <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-green-500 border-2 border-primary rounded-full animate-pulse" />
-                </button>
+                <div className="fixed bottom-6 right-6 z-50 flex items-end gap-3 animate-bounce-slow">
+                    {/* Speech bubble label */}
+                    <div
+                        className={cn(
+                            "flex flex-col items-end gap-0.5 transition-all duration-500",
+                            showLabel ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"
+                        )}
+                    >
+                        <div className="relative bg-[#0F1115]/95 border border-primary/30 rounded-2xl rounded-br-sm px-4 py-2.5 shadow-[0_4px_24px_rgba(201,162,77,0.15)] backdrop-blur-sm">
+                            <p className="text-[13px] font-bold text-primary leading-tight whitespace-nowrap">¿En qué puedo ayudarte?</p>
+                            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest mt-0.5 whitespace-nowrap">Soy Aria · IA de SendaIA</p>
+                            {/* Tail pointing right */}
+                            <span className="absolute -right-2 bottom-3 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[8px] border-l-primary/30" />
+                            <span className="absolute -right-[7px] bottom-[13px] w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[7px] border-l-[#0F1115]" />
+                        </div>
+                    </div>
+
+                    {/* Main button */}
+                    <button
+                        onClick={() => { setIsOpen(true); setShowLabel(false) }}
+                        onMouseEnter={() => setShowLabel(true)}
+                        onMouseLeave={() => setShowLabel(false)}
+                        className="relative h-16 w-16 rounded-2xl shadow-[0_0_30px_rgba(201,162,77,0.3)] bg-primary hover:bg-primary/90 hover:scale-105 transition-all flex items-center justify-center group flex-shrink-0"
+                    >
+                        <Image src="/logo-sendaia.png" alt="Aria" width={40} height={40} className="rounded-lg transition-transform group-hover:scale-110" />
+                        <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-green-500 border-2 border-primary rounded-full animate-pulse" />
+                    </button>
+                </div>
             )}
 
             {isOpen && (

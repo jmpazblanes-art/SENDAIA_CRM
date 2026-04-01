@@ -1,14 +1,58 @@
 "use client"
 
+import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Settings, Shield, Bell, Database, Globe, Brain } from "lucide-react"
+import { Settings, Shield, Bell, Database, Globe, Brain, Loader2, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
+import { getAgencySettings, saveAgencySettings } from "./actions"
 
 export default function SettingsPage() {
+    const [agencyName, setAgencyName] = React.useState("")
+    const [agencyEmail, setAgencyEmail] = React.useState("")
+    const [isSaving, setIsSaving] = React.useState(false)
+    const [isLoading, setIsLoading] = React.useState(true)
+    const [saved, setSaved] = React.useState(false)
+
+    React.useEffect(() => {
+        getAgencySettings().then((settings) => {
+            setAgencyName(settings.agency_name)
+            setAgencyEmail(settings.agency_email)
+            setIsLoading(false)
+        })
+    }, [])
+
+    const handleSave = async () => {
+        if (!agencyName.trim() || !agencyEmail.trim()) {
+            toast.error("Por favor completa todos los campos.")
+            return
+        }
+        setIsSaving(true)
+        setSaved(false)
+
+        const result = await saveAgencySettings({
+            agency_name: agencyName.trim(),
+            agency_email: agencyEmail.trim(),
+        })
+
+        setIsSaving(false)
+
+        if (result.success) {
+            setSaved(true)
+            toast.success("Configuración guardada correctamente.", {
+                description: "Los datos de la agencia han sido actualizados.",
+            })
+            setTimeout(() => setSaved(false), 3000)
+        } else {
+            toast.error("Error al guardar la configuración.", {
+                description: result.error ?? "Inténtalo de nuevo.",
+            })
+        }
+    }
+
     const handleTestTelegram = () => {
         toast.success("Alerta enviada correctamente a Telegram (Modo Simulación)", {
             description: "El bot @SendaIA_Bot ha procesado la notificación.",
@@ -46,17 +90,57 @@ export default function SettingsPage() {
                             <CardDescription>Información básica de SendaIA CRM.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="agency_name">Nombre de la Agencia</Label>
-                                    <Input id="agency_name" defaultValue="SendaIA" className="bg-secondary/10" />
+                            {isLoading ? (
+                                <div className="flex items-center gap-2 text-muted-foreground text-sm py-4">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span>Cargando configuración...</span>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="agency_email">Email Corporativo</Label>
-                                    <Input id="agency_email" defaultValue="hola@sendaia.es" className="bg-secondary/10" />
-                                </div>
-                            </div>
-                            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">Guardar Cambios</Button>
+                            ) : (
+                                <>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="agency_name">Nombre de la Agencia</Label>
+                                            <Input
+                                                id="agency_name"
+                                                value={agencyName}
+                                                onChange={(e) => setAgencyName(e.target.value)}
+                                                className="bg-secondary/10"
+                                                disabled={isSaving}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="agency_email">Email Corporativo</Label>
+                                            <Input
+                                                id="agency_email"
+                                                type="email"
+                                                value={agencyEmail}
+                                                onChange={(e) => setAgencyEmail(e.target.value)}
+                                                className="bg-secondary/10"
+                                                disabled={isSaving}
+                                            />
+                                        </div>
+                                    </div>
+                                    <Button
+                                        onClick={handleSave}
+                                        disabled={isSaving}
+                                        className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[160px]"
+                                    >
+                                        {isSaving ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                Guardando...
+                                            </>
+                                        ) : saved ? (
+                                            <>
+                                                <CheckCircle2 className="h-4 w-4 mr-2 text-green-400" />
+                                                Guardado
+                                            </>
+                                        ) : (
+                                            "Guardar Cambios"
+                                        )}
+                                    </Button>
+                                </>
+                            )}
                         </CardContent>
                     </Card>
 
