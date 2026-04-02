@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import {
     Phone, Mail, Building2, MapPin, Calendar,
     MessageSquare, Clock, Zap, User,
-    ChevronLeft, Edit, AlertCircle, CheckCircle2,
+    ChevronLeft, AlertCircle, CheckCircle2,
     ShieldAlert
 } from "lucide-react"
 import Link from "next/link"
@@ -15,6 +15,8 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { AddNoteDialog } from "@/components/clients/AddNoteDialog"
 import { SendEmailDialog } from "@/components/clients/SendEmailDialog"
+import { ClientDetailHeader } from "@/components/clients/ClientDetailHeader"
+import { ClientDocuments } from "@/components/clients/ClientDocuments"
 
 export const dynamic = 'force-dynamic'
 
@@ -61,6 +63,17 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
 
         if (aptsError) {
             console.error("Appointments fetch error:", aptsError)
+        }
+
+        // Fetch documents
+        const { data: documents, error: docsError } = await supabase
+            .from('client_documents')
+            .select('*')
+            .eq('client_id', id)
+            .order('created_at', { ascending: false })
+
+        if (docsError) {
+            console.error("Documents fetch error:", docsError)
         }
 
         // Combine activities for timeline
@@ -115,12 +128,7 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" className="border-border hover:bg-secondary/30 text-xs font-bold uppercase transition-all">
-                            <Edit className="h-4 w-4 mr-2" /> Editar
-                        </Button>
-                        <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-xl shadow-primary/20 text-xs font-bold uppercase transition-all border-b-2 border-primary-foreground/20 active:border-b-0">
-                            <Zap className="h-4 w-4 mr-2" /> Acción IA
-                        </Button>
+                        <ClientDetailHeader client={client} />
                     </div>
                 </div>
 
@@ -205,6 +213,8 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
                     </div>
 
                     <div className="lg:col-span-2 space-y-6">
+                        <ClientDocuments clientId={client.id} initialDocuments={documents || []} />
+
                         <Card className="bg-card border-border shadow-xl min-h-[500px] relative overflow-hidden">
                             <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 px-6 py-4">
                                 <div>

@@ -68,6 +68,63 @@ export async function createNoteAction(formData: FormData) {
     return { success: true }
 }
 
+export async function updateClientAction(clientId: string, formData: FormData) {
+    const supabase = await createClient()
+
+    const fields: Record<string, any> = {}
+
+    // Text fields
+    const textFields = [
+        'first_name', 'last_name', 'email', 'phone', 'phone2',
+        'company_name', 'industry', 'company_size', 'website', 'linkedin',
+        'city', 'status', 'priority', 'source', 'notes'
+    ]
+    for (const key of textFields) {
+        const val = formData.get(key)
+        if (val !== null) {
+            fields[key] = (val as string) || null
+        }
+    }
+
+    // Numeric field
+    const opportunityScore = formData.get('opportunity_score')
+    if (opportunityScore !== null) {
+        fields.opportunity_score = opportunityScore ? parseInt(opportunityScore as string, 10) : null
+    }
+
+    // Date field
+    const nextFollowUp = formData.get('next_follow_up')
+    if (nextFollowUp !== null) {
+        fields.next_follow_up = (nextFollowUp as string) || null
+    }
+
+    // Array fields (comma-separated)
+    const tags = formData.get('tags')
+    if (tags !== null) {
+        fields.tags = (tags as string) ? (tags as string).split(',').map(t => t.trim()).filter(Boolean) : []
+    }
+
+    const painPoints = formData.get('pain_points')
+    if (painPoints !== null) {
+        fields.pain_points = (painPoints as string) ? (painPoints as string).split(',').map(t => t.trim()).filter(Boolean) : []
+    }
+
+    const { error } = await supabase
+        .from('clients')
+        .update(fields)
+        .eq('id', clientId)
+
+    if (error) {
+        console.error('Error updating client:', error)
+        return { error: 'Error al actualizar el cliente.' }
+    }
+
+    revalidatePath(`/dashboard/clients/${clientId}`)
+    revalidatePath('/dashboard/clients')
+    revalidatePath('/dashboard')
+    return { success: true }
+}
+
 export async function importClientsAction(clients: any[]) {
     const supabase = await createClient()
 
@@ -90,6 +147,147 @@ export async function importClientsAction(clients: any[]) {
 
     revalidatePath('/dashboard/clients')
     return { success: true }
+}
+
+// =============================================================
+// DOCUMENT MANAGEMENT ACTIONS
+// =============================================================
+
+export async function uploadDocumentAction(clientId: string, formData: FormData) {
+    const supabase = await createClient()
+
+    try {
+        const file = formData.get('file') as File
+        const description = (formData.get('description') as string) || ''
+        const category = (formData.get('category') as string) || 'general'
+
+        if (!file || !file.name) {
+            return { error: 'No se ha seleccionado ningún archivo.' }
+        }
+
+        // Max 50MB
+        if (file.size > 50 * 1024 * 1024) {
+            return { error: 'El archivo supera el límite de 50MB.' }
+        }
+
+        // Generate unique storage path
+        const timestamp = Date.now()
+        const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+        const storagePath = `${clientId}/${timestamp}_${sanitizedName}`
+
+        // Upload to Supabase Storage
+        const { error: uploadError } = await supabase.storage
+            .from('client-documents')
+            .upload(storagePath, file, {
+                cacheControl: '3600',
+                upsert: false
+            })
+
+        if (uploadError) {
+            console.error('Storage upload error:', uploadError)
+            return { error: `Error al subir archivo: ${uploadError.message}` }
+        }
+
+        // Create DB record
+        const { error: dbError } = await supabase.from('client_documents').insert({
+            client_id: clientId,
+            file_name: file.name,
+            file_size: file.size,
+            file_type: file.type || 'application/octet-stream',
+            storage_path: storagePath,
+            description,
+            category
+        })
+
+        if (dbError) {
+            // Rollback: delete uploaded file
+            await supabase.storage.from('client-documents').remove([storagePath])
+            console.error('DB insert error:', dbError)
+            return { error: 'Error al registrar el documento en la base de datos.' }
+        }
+
+        revalidatePath(`/dashboard/clients/${clientId}`)
+        return { success: true }
+    } catch (error: any) {
+        console.error('Upload document error:', error)
+        return { error: error.message || 'Error inesperado al subir el documento.' }
+    }
+}
+
+export async function deleteDocumentAction(documentId: string) {
+    const supabase = await createClient()
+
+    try {
+        // Get the document record first
+        const { data: doc, error: fetchError } = await supabase
+            .from('client_documents')
+            .select('*')
+            .eq('id', documentId)
+            .single()
+
+        if (fetchError || !doc) {
+            return { error: 'Documento no encontrado.' }
+        }
+
+        // Delete from Storage
+        const { error: storageError } = await supabase.storage
+            .from('client-documents')
+            .remove([doc.storage_path])
+
+        if (storageError) {
+            console.error('Storage delete error:', storageError)
+            // Continue to delete DB record anyway
+        }
+
+        // Delete DB record
+        const { error: dbError } = await supabase
+            .from('client_documents')
+            .delete()
+            .eq('id', documentId)
+
+        if (dbError) {
+            console.error('DB delete error:', dbError)
+            return { error: 'Error al eliminar el registro del documento.' }
+        }
+
+        revalidatePath(`/dashboard/clients/${doc.client_id}`)
+        return { success: true }
+    } catch (error: any) {
+        console.error('Delete document error:', error)
+        return { error: error.message || 'Error inesperado al eliminar el documento.' }
+    }
+}
+
+export async function getClientDocumentsAction(clientId: string) {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+        .from('client_documents')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false })
+
+    if (error) {
+        console.error('Error fetching documents:', error)
+        return { error: 'Error al obtener documentos.', data: [] }
+    }
+
+    return { data: data || [] }
+}
+
+export async function getDocumentSignedUrl(storagePath: string) {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase.storage
+        .from('client-documents')
+        .createSignedUrl(storagePath, 60 * 60) // 1 hour expiry
+
+    if (error) {
+        console.error('Signed URL error:', error)
+        return { error: 'Error al generar enlace de descarga.' }
+    }
+
+    return { url: data.signedUrl }
 }
 
 export async function extractLeadFromURLAction(url: string) {
