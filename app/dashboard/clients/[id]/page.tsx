@@ -17,6 +17,8 @@ import { AddNoteDialog } from "@/components/clients/AddNoteDialog"
 import { SendEmailDialog } from "@/components/clients/SendEmailDialog"
 import { ClientDetailHeader } from "@/components/clients/ClientDetailHeader"
 import { ClientDocuments } from "@/components/clients/ClientDocuments"
+import { ClientContracts } from "@/components/clients/ClientContracts"
+import { getClientContracts } from "@/app/dashboard/clients/contract-actions"
 
 export const dynamic = 'force-dynamic'
 
@@ -75,6 +77,9 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
         if (docsError) {
             console.error("Documents fetch error:", docsError)
         }
+
+        // Fetch contracts with phases
+        const { data: contracts } = await getClientContracts(id)
 
         // Combine activities for timeline
         const activities = [
@@ -214,6 +219,8 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
 
                     <div className="lg:col-span-2 space-y-6">
                         <ClientDocuments clientId={client.id} initialDocuments={documents || []} />
+
+                        <ClientContracts clientId={client.id} initialContracts={contracts || []} />
 
                         <Card className="bg-card border-border shadow-xl min-h-[500px] relative overflow-hidden">
                             <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 px-6 py-4">
